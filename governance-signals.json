@@ -1,0 +1,3677 @@
+{
+  "_meta": {
+    "id": "ZIC-001",
+    "name": "ZIC Decision Engine — Governance Signal Library",
+    "abbreviation": "ZIC",
+    "version": "2.1.0",
+    "schema_version": "1.0",
+    "published": "2026-05-26",
+    "author": "Gururaj G J — Independent Fraud & Risk Engineering",
+    "description": "Single source-of-truth for all fraud intelligence definitions consumed by the decision engine, dashboards, reviewers, and detection systems. All signal severities, pattern taxonomies, scoring bands, thresholds, and decision logic are defined here and propagated to every consuming system.",
+    "contact": "https://www.linkedin.com/in/gururaj-gj-52a062b4/",
+    "website": "https://github.com/Gururaj-GJ-G/zic-decision-engine",
+    "consuming_systems": [
+      "Decision Risk Reviewer",
+      "Fraud Pattern Detector",
+      "Agent Authority Risk Mapper",
+      "Fraud Dashboard",
+      "Fraud Signal Library",
+      "Risk API (future)",
+      "Real-time Decision Engine (future)"
+    ],
+    "changelog": [
+      {
+        "version": "1.0.0",
+        "date": "2026-05-26",
+        "changes": "Initial ZIC release — 28 signals, 8 fraud typologies, full scoring and decision framework"
+      },
+      {
+        "version": "2.0.0",
+        "date": "2026-05-26",
+        "changes": "Expanded signal library to 107 signals across 12 intelligence domains. Added Device Intelligence, Session & Authentication, Promo & Incentive Abuse, Marketplace & Platform Abuse, Operational Risk, Trust & Safety categories. Added trust_safety and marketplace threshold domains."
+      },
+      {
+        "version": "2.1.0",
+        "date": "2026-05-26",
+        "changes": "Added missing thresholds to ZIC core: transaction.cvv_fail_max_per_card, cvv_fail_max_distinct_cards_device, card_add_velocity_24h_max, mule_inbound_source_min, gift_card thresholds. Added session threshold domain: otp_fail_max_per_account, mfa_fail_max, simultaneous_geo_sessions_max. Added identity.sim_activation_min_days. Clarified DL_002 note: MUL_001 and NET_005 are signal IDs not typology IDs."
+      }
+    ]
+  },
+  "severity_framework": {
+    "CRITICAL": {
+      "label": "Critical",
+      "description": "Immediate risk — active exploitation patterns present. Automatic action required.",
+      "color_hex": "#DC2626",
+      "score_contribution": "40–50",
+      "sla_hours": 1,
+      "auto_action": true
+    },
+    "HIGH": {
+      "label": "High",
+      "description": "Elevated risk — strong behavioural indicators observed. Manual review required within 4 hours.",
+      "color_hex": "#D97706",
+      "score_contribution": "25–39",
+      "sla_hours": 4,
+      "auto_action": false
+    },
+    "MEDIUM": {
+      "label": "Medium",
+      "description": "Moderate risk — emerging patterns, escalation monitoring required.",
+      "color_hex": "#2563EB",
+      "score_contribution": "10–24",
+      "sla_hours": 24,
+      "auto_action": false
+    },
+    "LOW": {
+      "label": "Low",
+      "description": "Low risk — early signal, log and monitor only.",
+      "color_hex": "#16A34A",
+      "score_contribution": "1–9",
+      "sla_hours": 72,
+      "auto_action": false
+    }
+  },
+  "scoring_bands": [
+    {
+      "band_id": "BAND_01",
+      "label": "Clear",
+      "score_min": 0,
+      "score_max": 20,
+      "action": "ALLOW",
+      "description": "No significant risk indicators. Allow transaction or action.",
+      "review_required": false,
+      "notify_team": false,
+      "color_hex": "#16A34A"
+    },
+    {
+      "band_id": "BAND_02",
+      "label": "Elevated",
+      "score_min": 21,
+      "score_max": 40,
+      "action": "MONITOR",
+      "description": "Low-level signals present. Log, monitor, and apply passive controls.",
+      "review_required": false,
+      "notify_team": false,
+      "color_hex": "#0D9488"
+    },
+    {
+      "band_id": "BAND_03",
+      "label": "Suspicious",
+      "score_min": 41,
+      "score_max": 60,
+      "action": "CHALLENGE",
+      "description": "Multiple signals detected. Apply step-up verification before proceeding.",
+      "review_required": false,
+      "notify_team": true,
+      "color_hex": "#2563EB"
+    },
+    {
+      "band_id": "BAND_04",
+      "label": "High Risk",
+      "score_min": 61,
+      "score_max": 79,
+      "action": "REVIEW",
+      "description": "Strong fraud indicators. Route to manual review queue immediately.",
+      "review_required": true,
+      "notify_team": true,
+      "color_hex": "#D97706"
+    },
+    {
+      "band_id": "BAND_05",
+      "label": "Critical",
+      "score_min": 80,
+      "score_max": 100,
+      "action": "BLOCK",
+      "description": "High-confidence fraud pattern. Block and escalate to fraud operations team.",
+      "review_required": true,
+      "notify_team": true,
+      "color_hex": "#DC2626"
+    }
+  ],
+  "operational_actions": {
+    "ALLOW": {
+      "label": "Allow",
+      "description": "Permit the transaction or action without friction.",
+      "user_impact": "none",
+      "reversible": true
+    },
+    "MONITOR": {
+      "label": "Monitor",
+      "description": "Permit but flag for passive monitoring. Log all subsequent actions.",
+      "user_impact": "none",
+      "reversible": true
+    },
+    "STEP_UP": {
+      "label": "Step-Up Verification",
+      "description": "Require additional authentication before proceeding (OTP, biometric, document).",
+      "user_impact": "friction",
+      "reversible": true
+    },
+    "VELOCITY_LIMIT": {
+      "label": "Velocity Limit",
+      "description": "Apply transaction velocity caps or session limits.",
+      "user_impact": "restriction",
+      "reversible": true
+    },
+    "MANUAL_REVIEW": {
+      "label": "Manual Review",
+      "description": "Route to human fraud analyst review queue. Pause action pending outcome.",
+      "user_impact": "delay",
+      "reversible": true
+    },
+    "SOFT_BLOCK": {
+      "label": "Soft Block",
+      "description": "Temporarily suspend action. Allow appeal. Notify user.",
+      "user_impact": "temporary_block",
+      "reversible": true
+    },
+    "BLOCK": {
+      "label": "Block",
+      "description": "Block transaction or action. Do not notify user of fraud reason.",
+      "user_impact": "block",
+      "reversible": true
+    },
+    "SUSPEND": {
+      "label": "Account Suspend",
+      "description": "Suspend account pending full fraud investigation.",
+      "user_impact": "account_suspension",
+      "reversible": true
+    },
+    "TERMINATE": {
+      "label": "Account Terminate",
+      "description": "Permanently close account. Initiate SAR if required.",
+      "user_impact": "account_closure",
+      "reversible": false
+    },
+    "ESCALATE_SAR": {
+      "label": "Escalate — SAR",
+      "description": "Escalate to compliance for Suspicious Activity Report filing.",
+      "user_impact": "regulatory",
+      "reversible": false
+    }
+  },
+  "thresholds": {
+    "_note": "All consuming systems MUST read thresholds from this section. No hardcoded values.",
+    "identity": {
+      "device_change_window_hours": 24,
+      "geo_distance_suspicious_km": 500,
+      "email_domain_age_min_days": 7,
+      "kyc_document_reuse_max_accounts": 1,
+      "selfie_match_min_confidence": 0.85,
+      "phone_age_min_days": 30,
+      "ip_reputation_min_score": 40,
+      "sim_activation_min_days": 7,
+      "ip_cluster_high_risk_score": 12
+    },
+    "behavioral": {
+      "session_duration_min_seconds": 8,
+      "navigation_speed_max_pages_per_second": 3,
+      "copy_paste_credential_flag": true,
+      "headless_browser_flag": true,
+      "multi_account_device_threshold": 3,
+      "onboarding_completion_min_seconds": 45
+    },
+    "transaction": {
+      "first_txn_high_value_threshold_inr": 10000,
+      "refund_request_window_hours": 2,
+      "velocity_window_minutes": 15,
+      "velocity_max_transactions": 5,
+      "round_number_cluster_threshold": 3,
+      "bin_geo_mismatch_distance_km": 300,
+      "new_beneficiary_age_min_hours": 48,
+      "outbound_drain_window_minutes": 30,
+      "cvv_fail_max_per_card": 3,
+      "cvv_fail_max_distinct_cards_device": 5,
+      "card_add_velocity_24h_max": 5,
+      "mule_inbound_source_min": 3,
+      "gift_card_bulk_purchase_min_inr": 50000,
+      "gift_card_new_account_age_max_days": 7
+    },
+    "network": {
+      "shared_device_account_threshold": 3,
+      "referral_chain_max_depth": 4,
+      "promo_redemption_window_minutes": 10,
+      "registration_cluster_window_minutes": 5,
+      "account_clustering_ip_threshold": 5,
+      "shared_beneficiary_account_threshold": 3
+    },
+    "agent": {
+      "max_override_amount_inr": 50000,
+      "max_daily_approvals": 20,
+      "off_hours_approval_flag_start": "22:00",
+      "off_hours_approval_flag_end": "06:00",
+      "bulk_approval_threshold": 5,
+      "new_agent_high_value_window_days": 30
+    },
+    "trust_safety": {
+      "harassment_target_account_threshold": 3,
+      "spam_message_rate_per_minute": 10,
+      "message_similarity_threshold": 0.85,
+      "trust_score_decline_threshold": 0.3,
+      "content_abuse_rate_multiplier": 5
+    },
+    "marketplace": {
+      "listing_similarity_threshold": 0.9,
+      "duplicate_listing_count": 3,
+      "return_rate_multiplier": 5,
+      "payout_request_window_hours": 2,
+      "escrow_dispute_rate_multiplier": 3
+    },
+    "session": {
+      "otp_fail_max_per_account": 5,
+      "mfa_fail_max": 3,
+      "simultaneous_geo_sessions_max": 2
+    }
+  },
+  "signals": [
+    {
+      "signal_id": "IDN_001",
+      "signal_name": "Device Fingerprint Mismatch at Registration",
+      "category": "Identity & Onboarding",
+      "subcategory": "Device Intelligence",
+      "severity": "HIGH",
+      "base_score": 35,
+      "weight": 1.0,
+      "description": "Device fingerprint at registration differs from device used in KYC flow within threshold window.",
+      "threshold_ref": "identity.device_change_window_hours",
+      "detection_logic": "device_fp_at_reg != device_fp_at_kyc AND delta_hours < threshold",
+      "recommended_action": "STEP_UP",
+      "confidence": 0.82,
+      "false_positive_rate": 0.12,
+      "typologies": [
+        "ATO_001",
+        "SYN_001"
+      ],
+      "signal_type": "Anomaly",
+      "source_layer": "Identity Engine",
+      "enabled": true,
+      "tags": [
+        "device",
+        "kyc",
+        "onboarding"
+      ]
+    },
+    {
+      "signal_id": "IDN_002",
+      "signal_name": "Document Velocity Across Accounts",
+      "category": "Identity & Onboarding",
+      "subcategory": "Document Intelligence",
+      "severity": "HIGH",
+      "base_score": 38,
+      "weight": 1.0,
+      "description": "Same identity document hash submitted across multiple accounts within rolling window.",
+      "threshold_ref": "identity.kyc_document_reuse_max_accounts",
+      "detection_logic": "document_hash in existing_accounts AND count > threshold",
+      "recommended_action": "MANUAL_REVIEW",
+      "confidence": 0.91,
+      "false_positive_rate": 0.04,
+      "typologies": [
+        "SYN_001",
+        "FAK_001"
+      ],
+      "signal_type": "Velocity",
+      "source_layer": "Document Engine",
+      "enabled": true,
+      "tags": [
+        "document",
+        "velocity",
+        "reuse"
+      ]
+    },
+    {
+      "signal_id": "IDN_003",
+      "signal_name": "Email Domain Age Below Threshold",
+      "category": "Identity & Onboarding",
+      "subcategory": "Email Intelligence",
+      "severity": "MEDIUM",
+      "base_score": 18,
+      "weight": 0.7,
+      "description": "Email domain registered fewer than 7 days before account creation. Throwaway identity indicator.",
+      "threshold_ref": "identity.email_domain_age_min_days",
+      "detection_logic": "email_domain_age_days < threshold",
+      "recommended_action": "MONITOR",
+      "confidence": 0.68,
+      "false_positive_rate": 0.22,
+      "typologies": [
+        "FAK_001",
+        "PRO_001"
+      ],
+      "signal_type": "Attribute",
+      "source_layer": "Email Intelligence",
+      "enabled": true,
+      "tags": [
+        "email",
+        "domain",
+        "age"
+      ]
+    },
+    {
+      "signal_id": "IDN_004",
+      "signal_name": "IP Geolocation Inconsistent With Document",
+      "category": "Identity & Onboarding",
+      "subcategory": "Geolocation Intelligence",
+      "severity": "HIGH",
+      "base_score": 32,
+      "weight": 0.9,
+      "description": "Registration IP geolocation inconsistent with country or state on submitted identity document.",
+      "threshold_ref": "identity.geo_distance_suspicious_km",
+      "detection_logic": "geo_distance(ip_location, doc_address) > threshold",
+      "recommended_action": "STEP_UP",
+      "confidence": 0.76,
+      "false_positive_rate": 0.18,
+      "typologies": [
+        "SYN_001",
+        "ATO_001"
+      ],
+      "signal_type": "Geolocation",
+      "source_layer": "Identity Engine",
+      "enabled": true,
+      "tags": [
+        "geo",
+        "ip",
+        "document"
+      ]
+    },
+    {
+      "signal_id": "IDN_005",
+      "signal_name": "Behavioural Anomaly During KYC Flow",
+      "category": "Identity & Onboarding",
+      "subcategory": "Behavioural Biometrics",
+      "severity": "MEDIUM",
+      "base_score": 22,
+      "weight": 0.8,
+      "description": "Navigation speed, click patterns, or session timing during KYC flow inconsistent with human behaviour.",
+      "threshold_ref": "behavioral.onboarding_completion_min_seconds",
+      "detection_logic": "kyc_completion_seconds < threshold OR mouse_pattern_score < 0.4",
+      "recommended_action": "STEP_UP",
+      "confidence": 0.71,
+      "false_positive_rate": 0.14,
+      "typologies": [
+        "FAK_001",
+        "SYN_001"
+      ],
+      "signal_type": "Behavioural",
+      "source_layer": "Behavioural Engine",
+      "enabled": true,
+      "tags": [
+        "behavioural",
+        "kyc",
+        "biometrics"
+      ]
+    },
+    {
+      "signal_id": "IDN_006",
+      "signal_name": "Disposable Email Address Detected",
+      "category": "Identity & Onboarding",
+      "subcategory": "Email Intelligence",
+      "severity": "MEDIUM",
+      "base_score": 20,
+      "weight": 0.75,
+      "description": "Registration email domain matches known disposable or temporary email provider list.",
+      "threshold_ref": null,
+      "detection_logic": "email_domain in disposable_domain_list",
+      "recommended_action": "MONITOR",
+      "confidence": 0.83,
+      "false_positive_rate": 0.08,
+      "typologies": [
+        "FAK_001",
+        "PRO_001"
+      ],
+      "signal_type": "Attribute",
+      "source_layer": "Email Intelligence",
+      "enabled": true,
+      "tags": [
+        "email",
+        "disposable",
+        "throwaway"
+      ]
+    },
+    {
+      "signal_id": "IDN_007",
+      "signal_name": "Phone Number Recycled Recently",
+      "category": "Identity & Onboarding",
+      "subcategory": "Phone Intelligence",
+      "severity": "MEDIUM",
+      "base_score": 24,
+      "weight": 0.8,
+      "description": "Mobile number assigned to current user was released and reassigned within the past 90 days.",
+      "threshold_ref": "identity.phone_age_min_days",
+      "detection_logic": "phone_reassignment_days < 90",
+      "recommended_action": "STEP_UP",
+      "confidence": 0.72,
+      "false_positive_rate": 0.16,
+      "typologies": [
+        "SYN_001",
+        "ATO_001"
+      ],
+      "signal_type": "Attribute",
+      "source_layer": "Identity Engine",
+      "enabled": true,
+      "tags": [
+        "phone",
+        "recycled",
+        "sim"
+      ]
+    },
+    {
+      "signal_id": "IDN_008",
+      "signal_name": "OCR Confidence Below Threshold",
+      "category": "Identity & Onboarding",
+      "subcategory": "Document Intelligence",
+      "severity": "HIGH",
+      "base_score": 30,
+      "weight": 0.85,
+      "description": "Optical character recognition confidence score on submitted document falls below acceptable threshold, suggesting alteration.",
+      "threshold_ref": "identity.selfie_match_min_confidence",
+      "detection_logic": "ocr_confidence < 0.75",
+      "recommended_action": "MANUAL_REVIEW",
+      "confidence": 0.8,
+      "false_positive_rate": 0.14,
+      "typologies": [
+        "SYN_001"
+      ],
+      "signal_type": "Attribute",
+      "source_layer": "Document Engine",
+      "enabled": true,
+      "tags": [
+        "ocr",
+        "document",
+        "tampering"
+      ]
+    },
+    {
+      "signal_id": "IDN_009",
+      "signal_name": "Face Match Probability Below Threshold",
+      "category": "Identity & Onboarding",
+      "subcategory": "Biometric Intelligence",
+      "severity": "HIGH",
+      "base_score": 36,
+      "weight": 0.95,
+      "description": "Liveness selfie face match against submitted document falls below minimum confidence threshold.",
+      "threshold_ref": "identity.selfie_match_min_confidence",
+      "detection_logic": "face_match_score < threshold",
+      "recommended_action": "MANUAL_REVIEW",
+      "confidence": 0.88,
+      "false_positive_rate": 0.06,
+      "typologies": [
+        "SYN_001",
+        "FAK_001"
+      ],
+      "signal_type": "Biometric",
+      "source_layer": "Identity Engine",
+      "enabled": true,
+      "tags": [
+        "face",
+        "liveness",
+        "biometric"
+      ]
+    },
+    {
+      "signal_id": "IDN_010",
+      "signal_name": "Multiple Identities From Same Browser Hash",
+      "category": "Identity & Onboarding",
+      "subcategory": "Device Intelligence",
+      "severity": "HIGH",
+      "base_score": 34,
+      "weight": 0.9,
+      "description": "Two or more distinct identity documents submitted from the same browser fingerprint hash.",
+      "threshold_ref": "network.shared_device_account_threshold",
+      "detection_logic": "distinct_identities_per_browser >= 2",
+      "recommended_action": "MANUAL_REVIEW",
+      "confidence": 0.86,
+      "false_positive_rate": 0.07,
+      "typologies": [
+        "SYN_001",
+        "FAK_001"
+      ],
+      "signal_type": "Network",
+      "source_layer": "Device Engine",
+      "enabled": true,
+      "tags": [
+        "browser",
+        "identity",
+        "multi"
+      ]
+    },
+    {
+      "signal_id": "IDN_011",
+      "signal_name": "SIM Activation Age Anomaly",
+      "category": "Identity & Onboarding",
+      "subcategory": "Phone Intelligence",
+      "severity": "MEDIUM",
+      "base_score": 22,
+      "weight": 0.75,
+      "description": "SIM card used for registration activated fewer than 7 days before onboarding attempt.",
+      "threshold_ref": "identity.phone_age_min_days",
+      "detection_logic": "sim_activation_days < 7",
+      "recommended_action": "MONITOR",
+      "confidence": 0.69,
+      "false_positive_rate": 0.2,
+      "typologies": [
+        "ATO_001",
+        "SYN_001"
+      ],
+      "signal_type": "Attribute",
+      "source_layer": "Identity Engine",
+      "enabled": true,
+      "tags": [
+        "sim",
+        "phone",
+        "new"
+      ]
+    },
+    {
+      "signal_id": "IDN_012",
+      "signal_name": "Registration Velocity Per Device",
+      "category": "Identity & Onboarding",
+      "subcategory": "Velocity Intelligence",
+      "severity": "CRITICAL",
+      "base_score": 48,
+      "weight": 1.0,
+      "description": "More than 3 account registrations initiated from the same device fingerprint within a 24-hour window.",
+      "threshold_ref": "network.shared_device_account_threshold",
+      "detection_logic": "registrations_per_device_24h > threshold",
+      "recommended_action": "BLOCK",
+      "confidence": 0.9,
+      "false_positive_rate": 0.04,
+      "typologies": [
+        "FAK_001",
+        "PRO_001"
+      ],
+      "signal_type": "Velocity",
+      "source_layer": "Identity Engine",
+      "enabled": true,
+      "tags": [
+        "velocity",
+        "device",
+        "registration"
+      ]
+    },
+    {
+      "signal_id": "IDN_013",
+      "signal_name": "IP Reputation Score Below Threshold",
+      "category": "Identity & Onboarding",
+      "subcategory": "IP Intelligence",
+      "severity": "MEDIUM",
+      "base_score": 21,
+      "weight": 0.7,
+      "description": "Registration IP has a reputation score below minimum threshold, indicating proxy, VPN, or Tor usage.",
+      "threshold_ref": "identity.ip_reputation_min_score",
+      "detection_logic": "ip_reputation_score < threshold",
+      "recommended_action": "MONITOR",
+      "confidence": 0.73,
+      "false_positive_rate": 0.18,
+      "typologies": [
+        "FAK_001",
+        "ATO_001"
+      ],
+      "signal_type": "Attribute",
+      "source_layer": "IP Intelligence",
+      "enabled": true,
+      "tags": [
+        "ip",
+        "vpn",
+        "proxy",
+        "tor"
+      ]
+    },
+    {
+      "signal_id": "IDN_014",
+      "signal_name": "Address Mismatch Across Identity Documents",
+      "category": "Identity & Onboarding",
+      "subcategory": "Document Intelligence",
+      "severity": "HIGH",
+      "base_score": 28,
+      "weight": 0.85,
+      "description": "Residential address on government ID differs significantly from address provided during registration.",
+      "threshold_ref": null,
+      "detection_logic": "address_similarity(id_address, reg_address) < 0.6",
+      "recommended_action": "STEP_UP",
+      "confidence": 0.77,
+      "false_positive_rate": 0.15,
+      "typologies": [
+        "SYN_001"
+      ],
+      "signal_type": "Attribute",
+      "source_layer": "Document Engine",
+      "enabled": true,
+      "tags": [
+        "address",
+        "document",
+        "mismatch"
+      ]
+    },
+    {
+      "signal_id": "IDN_015",
+      "signal_name": "PAN/Aadhaar Network Cluster",
+      "category": "Identity & Onboarding",
+      "subcategory": "Identity Network Intelligence",
+      "severity": "CRITICAL",
+      "base_score": 42,
+      "weight": 1.0,
+      "description": "Same PAN or Aadhaar number linked to more than one active account, indicating identity sharing or duplication.",
+      "threshold_ref": null,
+      "detection_logic": "accounts_per_national_id > 1",
+      "recommended_action": "MANUAL_REVIEW",
+      "confidence": 0.92,
+      "false_positive_rate": 0.03,
+      "typologies": [
+        "SYN_001",
+        "MUL_001"
+      ],
+      "signal_type": "Network",
+      "source_layer": "Identity Engine",
+      "enabled": true,
+      "tags": [
+        "pan",
+        "aadhaar",
+        "national-id"
+      ]
+    },
+    {
+      "signal_id": "DEV_001",
+      "signal_name": "Emulator or Virtual Device Detected",
+      "category": "Device Intelligence",
+      "subcategory": "Emulation Detection",
+      "severity": "CRITICAL",
+      "base_score": 46,
+      "weight": 1.0,
+      "description": "Device telemetry indicates Android or iOS emulator, or virtual machine. Common in automated fraud.",
+      "threshold_ref": null,
+      "detection_logic": "is_emulator == true OR vm_indicators.count > 2",
+      "recommended_action": "BLOCK",
+      "confidence": 0.93,
+      "false_positive_rate": 0.03,
+      "typologies": [
+        "FAK_001",
+        "PRO_001"
+      ],
+      "signal_type": "Device",
+      "source_layer": "Device Engine",
+      "enabled": true,
+      "tags": [
+        "emulator",
+        "vm",
+        "automation"
+      ]
+    },
+    {
+      "signal_id": "DEV_002",
+      "signal_name": "Rooted or Jailbroken Device",
+      "category": "Device Intelligence",
+      "subcategory": "Device Integrity",
+      "severity": "HIGH",
+      "base_score": 33,
+      "weight": 0.9,
+      "description": "Device has been rooted (Android) or jailbroken (iOS), removing standard security controls.",
+      "threshold_ref": null,
+      "detection_logic": "root_detected == true OR jailbreak_detected == true",
+      "recommended_action": "STEP_UP",
+      "confidence": 0.87,
+      "false_positive_rate": 0.08,
+      "typologies": [
+        "ATO_001",
+        "FAK_001"
+      ],
+      "signal_type": "Device",
+      "source_layer": "Device Engine",
+      "enabled": true,
+      "tags": [
+        "root",
+        "jailbreak",
+        "integrity"
+      ]
+    },
+    {
+      "signal_id": "DEV_003",
+      "signal_name": "Timezone Inconsistency",
+      "category": "Device Intelligence",
+      "subcategory": "Timezone Intelligence",
+      "severity": "MEDIUM",
+      "base_score": 19,
+      "weight": 0.65,
+      "description": "Device timezone does not match IP geolocation timezone. Indicates spoofed location or VPN usage.",
+      "threshold_ref": null,
+      "detection_logic": "device_timezone != ip_timezone AND delta_hours > 2",
+      "recommended_action": "MONITOR",
+      "confidence": 0.66,
+      "false_positive_rate": 0.24,
+      "typologies": [
+        "ATO_001",
+        "FAK_001"
+      ],
+      "signal_type": "Attribute",
+      "source_layer": "Device Engine",
+      "enabled": true,
+      "tags": [
+        "timezone",
+        "geo",
+        "spoof"
+      ]
+    },
+    {
+      "signal_id": "DEV_004",
+      "signal_name": "Device Language Mismatch",
+      "category": "Device Intelligence",
+      "subcategory": "Locale Intelligence",
+      "severity": "LOW",
+      "base_score": 12,
+      "weight": 0.5,
+      "description": "Device language setting inconsistent with registration country and IP geolocation.",
+      "threshold_ref": null,
+      "detection_logic": "device_language_country != registration_country AND device_language_country != ip_country",
+      "recommended_action": "MONITOR",
+      "confidence": 0.58,
+      "false_positive_rate": 0.3,
+      "typologies": [
+        "SYN_001",
+        "FAK_001"
+      ],
+      "signal_type": "Attribute",
+      "source_layer": "Device Engine",
+      "enabled": true,
+      "tags": [
+        "language",
+        "locale",
+        "mismatch"
+      ]
+    },
+    {
+      "signal_id": "DEV_005",
+      "signal_name": "Canvas Fingerprint Anomaly",
+      "category": "Device Intelligence",
+      "subcategory": "Fingerprint Intelligence",
+      "severity": "HIGH",
+      "base_score": 31,
+      "weight": 0.85,
+      "description": "Canvas rendering fingerprint matches known spoofing tools or anti-fingerprinting browser extensions.",
+      "threshold_ref": null,
+      "detection_logic": "canvas_fp in spoof_signature_list OR canvas_entropy < 0.3",
+      "recommended_action": "STEP_UP",
+      "confidence": 0.8,
+      "false_positive_rate": 0.11,
+      "typologies": [
+        "FAK_001",
+        "ATO_001"
+      ],
+      "signal_type": "Device",
+      "source_layer": "Device Engine",
+      "enabled": true,
+      "tags": [
+        "canvas",
+        "fingerprint",
+        "spoof"
+      ]
+    },
+    {
+      "signal_id": "DEV_006",
+      "signal_name": "Virtual Machine Indicators",
+      "category": "Device Intelligence",
+      "subcategory": "Emulation Detection",
+      "severity": "CRITICAL",
+      "base_score": 45,
+      "weight": 1.0,
+      "description": "Multiple hardware and software signals consistent with virtual machine execution environment.",
+      "threshold_ref": null,
+      "detection_logic": "vm_cpu_signature OR vm_mac_prefix OR vm_disk_signature",
+      "recommended_action": "BLOCK",
+      "confidence": 0.91,
+      "false_positive_rate": 0.04,
+      "typologies": [
+        "FAK_001",
+        "PRO_001"
+      ],
+      "signal_type": "Device",
+      "source_layer": "Device Engine",
+      "enabled": true,
+      "tags": [
+        "vm",
+        "virtual",
+        "emulation"
+      ]
+    },
+    {
+      "signal_id": "DEV_007",
+      "signal_name": "Browser Entropy Anomaly",
+      "category": "Device Intelligence",
+      "subcategory": "Fingerprint Intelligence",
+      "severity": "MEDIUM",
+      "base_score": 20,
+      "weight": 0.7,
+      "description": "Browser fingerprint entropy score is abnormally low or high, indicating fabricated or uniform fingerprint.",
+      "threshold_ref": null,
+      "detection_logic": "browser_entropy < 0.2 OR browser_entropy > 0.98",
+      "recommended_action": "MONITOR",
+      "confidence": 0.67,
+      "false_positive_rate": 0.22,
+      "typologies": [
+        "FAK_001"
+      ],
+      "signal_type": "Device",
+      "source_layer": "Device Engine",
+      "enabled": true,
+      "tags": [
+        "browser",
+        "entropy",
+        "fingerprint"
+      ]
+    },
+    {
+      "signal_id": "DEV_008",
+      "signal_name": "Device Reuse Across Geographic Regions",
+      "category": "Device Intelligence",
+      "subcategory": "Geolocation Intelligence",
+      "severity": "HIGH",
+      "base_score": 29,
+      "weight": 0.8,
+      "description": "Single device fingerprint used to access accounts from geographically distant locations within short time.",
+      "threshold_ref": "identity.geo_distance_suspicious_km",
+      "detection_logic": "geo_distance(session_1_location, session_2_location) > threshold AND session_delta_hours < 4",
+      "recommended_action": "STEP_UP",
+      "confidence": 0.78,
+      "false_positive_rate": 0.14,
+      "typologies": [
+        "ATO_001"
+      ],
+      "signal_type": "Geolocation",
+      "source_layer": "Device Engine",
+      "enabled": true,
+      "tags": [
+        "device",
+        "geo",
+        "travel"
+      ]
+    },
+    {
+      "signal_id": "DEV_009",
+      "signal_name": "Device Spoofing Probability High",
+      "category": "Device Intelligence",
+      "subcategory": "Fingerprint Intelligence",
+      "severity": "HIGH",
+      "base_score": 35,
+      "weight": 0.9,
+      "description": "ML model assigns high probability that device fingerprint has been fabricated or is being actively spoofed.",
+      "threshold_ref": null,
+      "detection_logic": "device_spoof_probability > 0.75",
+      "recommended_action": "MANUAL_REVIEW",
+      "confidence": 0.82,
+      "false_positive_rate": 0.1,
+      "typologies": [
+        "FAK_001",
+        "ATO_001"
+      ],
+      "signal_type": "ML",
+      "source_layer": "Device Engine",
+      "enabled": true,
+      "tags": [
+        "spoof",
+        "ml",
+        "probability"
+      ]
+    },
+    {
+      "signal_id": "SES_001",
+      "signal_name": "Impossible Travel Login",
+      "category": "Session & Authentication",
+      "subcategory": "Geolocation Intelligence",
+      "severity": "CRITICAL",
+      "base_score": 47,
+      "weight": 1.0,
+      "description": "Login from a location physically impossible to reach from previous login location given elapsed time.",
+      "threshold_ref": "identity.geo_distance_suspicious_km",
+      "detection_logic": "geo_distance(prev_login, curr_login) / session_delta_hours > 900",
+      "recommended_action": "BLOCK",
+      "confidence": 0.94,
+      "false_positive_rate": 0.02,
+      "typologies": [
+        "ATO_001"
+      ],
+      "signal_type": "Geolocation",
+      "source_layer": "Auth Engine",
+      "enabled": true,
+      "tags": [
+        "impossible-travel",
+        "geo",
+        "ato"
+      ]
+    },
+    {
+      "signal_id": "SES_002",
+      "signal_name": "Password Reset Followed by Device Change",
+      "category": "Session & Authentication",
+      "subcategory": "Account Lifecycle",
+      "severity": "HIGH",
+      "base_score": 38,
+      "weight": 1.0,
+      "description": "Password reset and device fingerprint change occur within 60 minutes of each other. Classic ATO pattern.",
+      "threshold_ref": null,
+      "detection_logic": "password_reset AND device_change AND delta_minutes < 60",
+      "recommended_action": "STEP_UP",
+      "confidence": 0.85,
+      "false_positive_rate": 0.08,
+      "typologies": [
+        "ATO_001"
+      ],
+      "signal_type": "Sequence",
+      "source_layer": "Auth Engine",
+      "enabled": true,
+      "tags": [
+        "password-reset",
+        "device",
+        "ato"
+      ]
+    },
+    {
+      "signal_id": "SES_003",
+      "signal_name": "MFA Bypass Attempt",
+      "category": "Session & Authentication",
+      "subcategory": "Authentication Intelligence",
+      "severity": "CRITICAL",
+      "base_score": 48,
+      "weight": 1.0,
+      "description": "Multiple failed MFA attempts followed by successful authentication using a different method.",
+      "threshold_ref": null,
+      "detection_logic": "mfa_fail_count >= 3 AND subsequent_auth_method != original_method",
+      "recommended_action": "BLOCK",
+      "confidence": 0.9,
+      "false_positive_rate": 0.04,
+      "typologies": [
+        "ATO_001"
+      ],
+      "signal_type": "Sequence",
+      "source_layer": "Auth Engine",
+      "enabled": true,
+      "tags": [
+        "mfa",
+        "bypass",
+        "ato"
+      ]
+    },
+    {
+      "signal_id": "SES_004",
+      "signal_name": "Dormant Account Sudden Reactivation",
+      "category": "Session & Authentication",
+      "subcategory": "Account Lifecycle",
+      "severity": "HIGH",
+      "base_score": 32,
+      "weight": 0.85,
+      "description": "Account inactive for 90+ days suddenly becomes active with high-value or sensitive action.",
+      "threshold_ref": null,
+      "detection_logic": "last_activity_days > 90 AND current_action_risk == HIGH",
+      "recommended_action": "STEP_UP",
+      "confidence": 0.79,
+      "false_positive_rate": 0.13,
+      "typologies": [
+        "ATO_001",
+        "MUL_001"
+      ],
+      "signal_type": "Lifecycle",
+      "source_layer": "Auth Engine",
+      "enabled": true,
+      "tags": [
+        "dormant",
+        "reactivation",
+        "lifecycle"
+      ]
+    },
+    {
+      "signal_id": "SES_005",
+      "signal_name": "Simultaneous Geographic Sessions",
+      "category": "Session & Authentication",
+      "subcategory": "Session Intelligence",
+      "severity": "CRITICAL",
+      "base_score": 46,
+      "weight": 1.0,
+      "description": "Same account has active authenticated sessions from two or more geographically distinct locations simultaneously.",
+      "threshold_ref": null,
+      "detection_logic": "active_sessions_distinct_geo >= 2",
+      "recommended_action": "BLOCK",
+      "confidence": 0.92,
+      "false_positive_rate": 0.03,
+      "typologies": [
+        "ATO_001"
+      ],
+      "signal_type": "Geolocation",
+      "source_layer": "Session Engine",
+      "enabled": true,
+      "tags": [
+        "simultaneous",
+        "geo",
+        "session"
+      ]
+    },
+    {
+      "signal_id": "SES_006",
+      "signal_name": "Cookie Replay Attack Indicators",
+      "category": "Session & Authentication",
+      "subcategory": "Session Integrity",
+      "severity": "HIGH",
+      "base_score": 36,
+      "weight": 0.9,
+      "description": "Session cookie reused after apparent logout, or same cookie ID observed from multiple IP addresses.",
+      "threshold_ref": null,
+      "detection_logic": "cookie_reuse_post_logout OR distinct_ips_per_cookie >= 2",
+      "recommended_action": "BLOCK",
+      "confidence": 0.84,
+      "false_positive_rate": 0.08,
+      "typologies": [
+        "ATO_001"
+      ],
+      "signal_type": "Session",
+      "source_layer": "Session Engine",
+      "enabled": true,
+      "tags": [
+        "cookie",
+        "replay",
+        "hijack"
+      ]
+    },
+    {
+      "signal_id": "SES_007",
+      "signal_name": "Authentication Velocity Spike",
+      "category": "Session & Authentication",
+      "subcategory": "Velocity Intelligence",
+      "severity": "HIGH",
+      "base_score": 34,
+      "weight": 0.9,
+      "description": "More than 10 authentication attempts against a single account within a 5-minute window.",
+      "threshold_ref": null,
+      "detection_logic": "auth_attempts_5min > 10",
+      "recommended_action": "VELOCITY_LIMIT",
+      "confidence": 0.88,
+      "false_positive_rate": 0.06,
+      "typologies": [
+        "ATO_001"
+      ],
+      "signal_type": "Velocity",
+      "source_layer": "Auth Engine",
+      "enabled": true,
+      "tags": [
+        "auth",
+        "velocity",
+        "brute-force"
+      ]
+    },
+    {
+      "signal_id": "SES_008",
+      "signal_name": "Login Timing Anomaly",
+      "category": "Session & Authentication",
+      "subcategory": "Temporal Intelligence",
+      "severity": "MEDIUM",
+      "base_score": 18,
+      "weight": 0.65,
+      "description": "Account login occurs at time significantly outside the user's established historical login pattern.",
+      "threshold_ref": null,
+      "detection_logic": "login_hour not in user_typical_hours AND deviation_score > 2.5",
+      "recommended_action": "MONITOR",
+      "confidence": 0.63,
+      "false_positive_rate": 0.26,
+      "typologies": [
+        "ATO_001"
+      ],
+      "signal_type": "Temporal",
+      "source_layer": "Auth Engine",
+      "enabled": true,
+      "tags": [
+        "timing",
+        "temporal",
+        "anomaly"
+      ]
+    },
+    {
+      "signal_id": "SES_009",
+      "signal_name": "Session Hijack Probability High",
+      "category": "Session & Authentication",
+      "subcategory": "ML Intelligence",
+      "severity": "HIGH",
+      "base_score": 37,
+      "weight": 0.95,
+      "description": "ML model assigns high probability of active session hijack based on combined session telemetry signals.",
+      "threshold_ref": null,
+      "detection_logic": "session_hijack_probability > 0.80",
+      "recommended_action": "BLOCK",
+      "confidence": 0.86,
+      "false_positive_rate": 0.07,
+      "typologies": [
+        "ATO_001"
+      ],
+      "signal_type": "ML",
+      "source_layer": "Session Engine",
+      "enabled": true,
+      "tags": [
+        "hijack",
+        "ml",
+        "session"
+      ]
+    },
+    {
+      "signal_id": "SES_010",
+      "signal_name": "High-Risk IP After Successful Login",
+      "category": "Session & Authentication",
+      "subcategory": "IP Intelligence",
+      "severity": "HIGH",
+      "base_score": 30,
+      "weight": 0.8,
+      "description": "Post-login session switches to an IP address flagged as high-risk (TOR, proxy, known fraud infrastructure).",
+      "threshold_ref": "identity.ip_reputation_min_score",
+      "detection_logic": "post_login_ip_risk == HIGH OR ip_in_fraud_infrastructure_list",
+      "recommended_action": "STEP_UP",
+      "confidence": 0.78,
+      "false_positive_rate": 0.14,
+      "typologies": [
+        "ATO_001",
+        "FAK_001"
+      ],
+      "signal_type": "IP",
+      "source_layer": "Session Engine",
+      "enabled": true,
+      "tags": [
+        "ip",
+        "tor",
+        "proxy",
+        "post-login"
+      ]
+    },
+    {
+      "signal_id": "BEH_001",
+      "signal_name": "Non-Human Navigation Speed",
+      "category": "Behavioural & Session",
+      "subcategory": "Automation Detection",
+      "severity": "HIGH",
+      "base_score": 34,
+      "weight": 0.95,
+      "description": "Page navigation speed exceeds maximum possible human interaction speed. Indicates scripted access.",
+      "threshold_ref": "behavioral.navigation_speed_max_pages_per_second",
+      "detection_logic": "pages_per_second > threshold",
+      "recommended_action": "BLOCK",
+      "confidence": 0.88,
+      "false_positive_rate": 0.06,
+      "typologies": [
+        "PRO_001",
+        "FAK_001"
+      ],
+      "signal_type": "Behavioural",
+      "source_layer": "Behavioural Engine",
+      "enabled": true,
+      "tags": [
+        "automation",
+        "bot",
+        "session"
+      ]
+    },
+    {
+      "signal_id": "BEH_002",
+      "signal_name": "Headless Browser or Automation Indicators",
+      "category": "Behavioural & Session",
+      "subcategory": "Automation Detection",
+      "severity": "CRITICAL",
+      "base_score": 48,
+      "weight": 1.0,
+      "description": "Request headers, WebDriver properties, or canvas fingerprint indicate headless browser or automation framework.",
+      "threshold_ref": null,
+      "detection_logic": "navigator.webdriver == true OR canvas_fp in headless_signatures",
+      "recommended_action": "BLOCK",
+      "confidence": 0.94,
+      "false_positive_rate": 0.03,
+      "typologies": [
+        "PRO_001",
+        "FAK_001",
+        "ATO_001"
+      ],
+      "signal_type": "Device",
+      "source_layer": "Device Engine",
+      "enabled": true,
+      "tags": [
+        "automation",
+        "headless",
+        "webdriver"
+      ]
+    },
+    {
+      "signal_id": "BEH_003",
+      "signal_name": "Session Duration Outlier",
+      "category": "Behavioural & Session",
+      "subcategory": "Session Intelligence",
+      "severity": "MEDIUM",
+      "base_score": 16,
+      "weight": 0.6,
+      "description": "Session completed in fewer than 8 seconds — insufficient for legitimate human interaction.",
+      "threshold_ref": "behavioral.session_duration_min_seconds",
+      "detection_logic": "session_duration_seconds < threshold",
+      "recommended_action": "MONITOR",
+      "confidence": 0.65,
+      "false_positive_rate": 0.2,
+      "typologies": [
+        "PRO_001"
+      ],
+      "signal_type": "Behavioural",
+      "source_layer": "Behavioural Engine",
+      "enabled": true,
+      "tags": [
+        "session",
+        "velocity"
+      ]
+    },
+    {
+      "signal_id": "BEH_004",
+      "signal_name": "Copy-Paste Credential Entry",
+      "category": "Behavioural & Session",
+      "subcategory": "Input Intelligence",
+      "severity": "MEDIUM",
+      "base_score": 20,
+      "weight": 0.7,
+      "description": "Username and password fields filled via clipboard paste. Common in credential stuffing.",
+      "threshold_ref": "behavioral.copy_paste_credential_flag",
+      "detection_logic": "login_input_method == PASTE",
+      "recommended_action": "STEP_UP",
+      "confidence": 0.7,
+      "false_positive_rate": 0.25,
+      "typologies": [
+        "ATO_001"
+      ],
+      "signal_type": "Behavioural",
+      "source_layer": "Behavioural Engine",
+      "enabled": true,
+      "tags": [
+        "credential",
+        "paste",
+        "ato"
+      ]
+    },
+    {
+      "signal_id": "BEH_005",
+      "signal_name": "Multiple Account Access From Same Device",
+      "category": "Behavioural & Session",
+      "subcategory": "Device Intelligence",
+      "severity": "HIGH",
+      "base_score": 36,
+      "weight": 1.0,
+      "description": "Single device fingerprint associated with 3+ distinct account sessions in rolling window.",
+      "threshold_ref": "behavioral.multi_account_device_threshold",
+      "detection_logic": "distinct_accounts_per_device >= threshold",
+      "recommended_action": "MANUAL_REVIEW",
+      "confidence": 0.85,
+      "false_positive_rate": 0.08,
+      "typologies": [
+        "PRO_001",
+        "FAK_001"
+      ],
+      "signal_type": "Network",
+      "source_layer": "Device Engine",
+      "enabled": true,
+      "tags": [
+        "multi-account",
+        "device"
+      ]
+    },
+    {
+      "signal_id": "BEH_006",
+      "signal_name": "Zero-Scroll Onboarding Completion",
+      "category": "Behavioural & Session",
+      "subcategory": "Interaction Intelligence",
+      "severity": "MEDIUM",
+      "base_score": 21,
+      "weight": 0.7,
+      "description": "User completes terms/consent screens without any scroll events. Indicates automated form completion.",
+      "threshold_ref": null,
+      "detection_logic": "scroll_events_during_onboarding == 0 AND pages_completed > 2",
+      "recommended_action": "MONITOR",
+      "confidence": 0.69,
+      "false_positive_rate": 0.2,
+      "typologies": [
+        "FAK_001",
+        "PRO_001"
+      ],
+      "signal_type": "Behavioural",
+      "source_layer": "Behavioural Engine",
+      "enabled": true,
+      "tags": [
+        "scroll",
+        "automation",
+        "onboarding"
+      ]
+    },
+    {
+      "signal_id": "BEH_007",
+      "signal_name": "Instant Form Field Completion",
+      "category": "Behavioural & Session",
+      "subcategory": "Input Intelligence",
+      "severity": "MEDIUM",
+      "base_score": 22,
+      "weight": 0.75,
+      "description": "All form fields completed in under 2 seconds total. Indicates autofill automation or scripted entry.",
+      "threshold_ref": null,
+      "detection_logic": "form_completion_seconds < 2 AND field_count > 5",
+      "recommended_action": "MONITOR",
+      "confidence": 0.71,
+      "false_positive_rate": 0.19,
+      "typologies": [
+        "FAK_001",
+        "SYN_001"
+      ],
+      "signal_type": "Behavioural",
+      "source_layer": "Behavioural Engine",
+      "enabled": true,
+      "tags": [
+        "autofill",
+        "automation",
+        "form"
+      ]
+    },
+    {
+      "signal_id": "BEH_008",
+      "signal_name": "Unrealistic Typing Cadence",
+      "category": "Behavioural & Session",
+      "subcategory": "Biometric Intelligence",
+      "severity": "HIGH",
+      "base_score": 28,
+      "weight": 0.8,
+      "description": "Keystroke timing between characters is perfectly uniform — inconsistent with human typing variability.",
+      "threshold_ref": null,
+      "detection_logic": "keystroke_variance < 0.05",
+      "recommended_action": "STEP_UP",
+      "confidence": 0.76,
+      "false_positive_rate": 0.15,
+      "typologies": [
+        "FAK_001",
+        "ATO_001"
+      ],
+      "signal_type": "Biometric",
+      "source_layer": "Behavioural Engine",
+      "enabled": true,
+      "tags": [
+        "typing",
+        "biometric",
+        "automation"
+      ]
+    },
+    {
+      "signal_id": "BEH_009",
+      "signal_name": "Repetitive Navigation Loop",
+      "category": "Behavioural & Session",
+      "subcategory": "Session Intelligence",
+      "severity": "MEDIUM",
+      "base_score": 19,
+      "weight": 0.65,
+      "description": "User navigates the same page sequence more than 5 times in a single session without variation.",
+      "threshold_ref": null,
+      "detection_logic": "navigation_loop_count > 5",
+      "recommended_action": "MONITOR",
+      "confidence": 0.64,
+      "false_positive_rate": 0.24,
+      "typologies": [
+        "PRO_001",
+        "FAK_001"
+      ],
+      "signal_type": "Behavioural",
+      "source_layer": "Behavioural Engine",
+      "enabled": true,
+      "tags": [
+        "navigation",
+        "loop",
+        "automation"
+      ]
+    },
+    {
+      "signal_id": "BEH_010",
+      "signal_name": "Human Inactivity During Transaction",
+      "category": "Behavioural & Session",
+      "subcategory": "Interaction Intelligence",
+      "severity": "MEDIUM",
+      "base_score": 20,
+      "weight": 0.7,
+      "description": "Zero mouse movement or keyboard input detected during transaction flow — suggests scripted transaction.",
+      "threshold_ref": null,
+      "detection_logic": "interaction_events_during_txn == 0",
+      "recommended_action": "MONITOR",
+      "confidence": 0.67,
+      "false_positive_rate": 0.22,
+      "typologies": [
+        "ATO_001",
+        "PRO_001"
+      ],
+      "signal_type": "Behavioural",
+      "source_layer": "Behavioural Engine",
+      "enabled": true,
+      "tags": [
+        "inactivity",
+        "transaction",
+        "automation"
+      ]
+    },
+    {
+      "signal_id": "TXN_001",
+      "signal_name": "First Transaction to New High-Value Beneficiary",
+      "category": "Transaction & Payment",
+      "subcategory": "Beneficiary Intelligence",
+      "severity": "HIGH",
+      "base_score": 37,
+      "weight": 1.0,
+      "description": "First-ever transaction to a new beneficiary exceeds high-value threshold.",
+      "threshold_ref": "transaction.first_txn_high_value_threshold_inr",
+      "detection_logic": "is_new_beneficiary AND txn_amount > threshold",
+      "recommended_action": "STEP_UP",
+      "confidence": 0.8,
+      "false_positive_rate": 0.15,
+      "typologies": [
+        "ATO_001",
+        "MUL_001"
+      ],
+      "signal_type": "Attribute",
+      "source_layer": "Transaction Engine",
+      "enabled": true,
+      "tags": [
+        "beneficiary",
+        "high-value",
+        "first-txn"
+      ]
+    },
+    {
+      "signal_id": "TXN_002",
+      "signal_name": "Refund Request Within 2 Hours of Purchase",
+      "category": "Transaction & Payment",
+      "subcategory": "Refund Intelligence",
+      "severity": "HIGH",
+      "base_score": 42,
+      "weight": 0.9,
+      "description": "Refund or chargeback request initiated within 2 hours of purchase. Primary refund abuse indicator.",
+      "threshold_ref": "transaction.refund_request_window_hours",
+      "detection_logic": "refund_delta_hours < threshold",
+      "recommended_action": "MANUAL_REVIEW",
+      "confidence": 0.79,
+      "false_positive_rate": 0.16,
+      "typologies": [
+        "TXF_001"
+      ],
+      "signal_type": "Temporal",
+      "source_layer": "Transaction Engine",
+      "enabled": true,
+      "tags": [
+        "refund",
+        "chargeback",
+        "abuse"
+      ]
+    },
+    {
+      "signal_id": "TXN_003",
+      "signal_name": "Velocity Burst in 15-Minute Window",
+      "category": "Transaction & Payment",
+      "subcategory": "Velocity Intelligence",
+      "severity": "CRITICAL",
+      "base_score": 52,
+      "weight": 1.0,
+      "description": "More than 5 transactions in a 15-minute window. Indicates automated or coordinated fraud.",
+      "threshold_ref": "transaction.velocity_max_transactions",
+      "detection_logic": "txn_count_15min > threshold",
+      "recommended_action": "VELOCITY_LIMIT",
+      "confidence": 0.87,
+      "false_positive_rate": 0.07,
+      "typologies": [
+        "ATO_001",
+        "PRO_001"
+      ],
+      "signal_type": "Velocity",
+      "source_layer": "Transaction Engine",
+      "enabled": true,
+      "tags": [
+        "velocity",
+        "burst"
+      ]
+    },
+    {
+      "signal_id": "TXN_004",
+      "signal_name": "Round-Number Transaction Clustering",
+      "category": "Transaction & Payment",
+      "subcategory": "Amount Intelligence",
+      "severity": "MEDIUM",
+      "base_score": 19,
+      "weight": 0.65,
+      "description": "3+ consecutive transactions with exact round-number amounts. Common in structuring.",
+      "threshold_ref": "transaction.round_number_cluster_threshold",
+      "detection_logic": "consecutive_round_txns >= threshold",
+      "recommended_action": "MONITOR",
+      "confidence": 0.62,
+      "false_positive_rate": 0.28,
+      "typologies": [
+        "MUL_001",
+        "TXF_001"
+      ],
+      "signal_type": "Pattern",
+      "source_layer": "Transaction Engine",
+      "enabled": true,
+      "tags": [
+        "round-number",
+        "structuring"
+      ]
+    },
+    {
+      "signal_id": "TXN_005",
+      "signal_name": "Card BIN Inconsistent With Account Geography",
+      "category": "Transaction & Payment",
+      "subcategory": "Card Intelligence",
+      "severity": "HIGH",
+      "base_score": 30,
+      "weight": 0.85,
+      "description": "Card BIN country does not match account registration geography beyond distance threshold.",
+      "threshold_ref": "transaction.bin_geo_mismatch_distance_km",
+      "detection_logic": "geo_distance(bin_country, account_geo) > threshold",
+      "recommended_action": "STEP_UP",
+      "confidence": 0.74,
+      "false_positive_rate": 0.19,
+      "typologies": [
+        "ATO_001",
+        "TXF_001"
+      ],
+      "signal_type": "Geolocation",
+      "source_layer": "Transaction Engine",
+      "enabled": true,
+      "tags": [
+        "card",
+        "bin",
+        "geo"
+      ]
+    },
+    {
+      "signal_id": "TXN_006",
+      "signal_name": "Split Transaction Behaviour",
+      "category": "Transaction & Payment",
+      "subcategory": "Structuring Detection",
+      "severity": "HIGH",
+      "base_score": 31,
+      "weight": 0.85,
+      "description": "Large transaction split into multiple smaller transactions just below reporting or threshold limits.",
+      "threshold_ref": null,
+      "detection_logic": "txn_count >= 3 AND all_amounts < limit_threshold AND sum_amounts > limit_threshold",
+      "recommended_action": "MANUAL_REVIEW",
+      "confidence": 0.8,
+      "false_positive_rate": 0.12,
+      "typologies": [
+        "MUL_001",
+        "TXF_001"
+      ],
+      "signal_type": "Pattern",
+      "source_layer": "Transaction Engine",
+      "enabled": true,
+      "tags": [
+        "structuring",
+        "split",
+        "smurfing"
+      ]
+    },
+    {
+      "signal_id": "TXN_007",
+      "signal_name": "Rapid New Beneficiary Addition",
+      "category": "Transaction & Payment",
+      "subcategory": "Beneficiary Intelligence",
+      "severity": "HIGH",
+      "base_score": 33,
+      "weight": 0.9,
+      "description": "3 or more new beneficiaries added within a 30-minute window. Indicates pre-exfiltration setup.",
+      "threshold_ref": null,
+      "detection_logic": "new_beneficiaries_30min >= 3",
+      "recommended_action": "STEP_UP",
+      "confidence": 0.82,
+      "false_positive_rate": 0.1,
+      "typologies": [
+        "ATO_001",
+        "MUL_001"
+      ],
+      "signal_type": "Velocity",
+      "source_layer": "Transaction Engine",
+      "enabled": true,
+      "tags": [
+        "beneficiary",
+        "rapid",
+        "ato"
+      ]
+    },
+    {
+      "signal_id": "TXN_008",
+      "signal_name": "Night-Hour Transaction Deviation",
+      "category": "Transaction & Payment",
+      "subcategory": "Temporal Intelligence",
+      "severity": "MEDIUM",
+      "base_score": 17,
+      "weight": 0.6,
+      "description": "Transaction initiated between midnight and 5am, significantly outside user's historical transaction hours.",
+      "threshold_ref": null,
+      "detection_logic": "txn_hour between 0 and 5 AND NOT in user_typical_txn_hours",
+      "recommended_action": "MONITOR",
+      "confidence": 0.61,
+      "false_positive_rate": 0.28,
+      "typologies": [
+        "ATO_001"
+      ],
+      "signal_type": "Temporal",
+      "source_layer": "Transaction Engine",
+      "enabled": true,
+      "tags": [
+        "temporal",
+        "night",
+        "anomaly"
+      ]
+    },
+    {
+      "signal_id": "TXN_009",
+      "signal_name": "Geographic Risk Transaction Mismatch",
+      "category": "Transaction & Payment",
+      "subcategory": "Geolocation Intelligence",
+      "severity": "HIGH",
+      "base_score": 28,
+      "weight": 0.8,
+      "description": "Transaction destination country assigned HIGH risk rating and inconsistent with account's transaction history.",
+      "threshold_ref": null,
+      "detection_logic": "destination_country_risk == HIGH AND destination_country NOT in user_history",
+      "recommended_action": "STEP_UP",
+      "confidence": 0.75,
+      "false_positive_rate": 0.17,
+      "typologies": [
+        "TXF_001",
+        "MUL_001"
+      ],
+      "signal_type": "Geolocation",
+      "source_layer": "Transaction Engine",
+      "enabled": true,
+      "tags": [
+        "geo",
+        "high-risk",
+        "country"
+      ]
+    },
+    {
+      "signal_id": "TXN_010",
+      "signal_name": "Micro-Transaction Test Pattern",
+      "category": "Transaction & Payment",
+      "subcategory": "Probing Detection",
+      "severity": "MEDIUM",
+      "base_score": 24,
+      "weight": 0.8,
+      "description": "Multiple very small transactions (< ₹10) sent to same beneficiary within short window. Card validation probing.",
+      "threshold_ref": null,
+      "detection_logic": "txn_count >= 3 AND all_amounts < 10 AND same_beneficiary",
+      "recommended_action": "MONITOR",
+      "confidence": 0.76,
+      "false_positive_rate": 0.16,
+      "typologies": [
+        "TXF_001"
+      ],
+      "signal_type": "Pattern",
+      "source_layer": "Transaction Engine",
+      "enabled": true,
+      "tags": [
+        "micro-txn",
+        "card-test",
+        "probing"
+      ]
+    },
+    {
+      "signal_id": "TXN_011",
+      "signal_name": "Payment Instrument Mismatch",
+      "category": "Transaction & Payment",
+      "subcategory": "Card Intelligence",
+      "severity": "HIGH",
+      "base_score": 29,
+      "weight": 0.82,
+      "description": "Payment instrument country of issue does not match account holder's registered country.",
+      "threshold_ref": null,
+      "detection_logic": "card_country != account_country",
+      "recommended_action": "STEP_UP",
+      "confidence": 0.77,
+      "false_positive_rate": 0.16,
+      "typologies": [
+        "TXF_001",
+        "ATO_001"
+      ],
+      "signal_type": "Attribute",
+      "source_layer": "Transaction Engine",
+      "enabled": true,
+      "tags": [
+        "card",
+        "country",
+        "mismatch"
+      ]
+    },
+    {
+      "signal_id": "NET_001",
+      "signal_name": "Shared Device Across 3+ Accounts",
+      "category": "Network & Platform",
+      "subcategory": "Account Network Intelligence",
+      "severity": "HIGH",
+      "base_score": 38,
+      "weight": 1.0,
+      "description": "Device fingerprint shared across 3+ distinct registered accounts.",
+      "threshold_ref": "network.shared_device_account_threshold",
+      "detection_logic": "account_count_per_device >= threshold",
+      "recommended_action": "MANUAL_REVIEW",
+      "confidence": 0.88,
+      "false_positive_rate": 0.07,
+      "typologies": [
+        "PRO_001",
+        "FAK_001"
+      ],
+      "signal_type": "Network",
+      "source_layer": "Graph Engine",
+      "enabled": true,
+      "tags": [
+        "device",
+        "network",
+        "multi-account"
+      ]
+    },
+    {
+      "signal_id": "NET_002",
+      "signal_name": "Referral Chain Depth Exceeds Threshold",
+      "category": "Network & Platform",
+      "subcategory": "Referral Intelligence",
+      "severity": "MEDIUM",
+      "base_score": 22,
+      "weight": 0.75,
+      "description": "Referral chain depth exceeds 4 levels. Indicates coordinated referral farming network.",
+      "threshold_ref": "network.referral_chain_max_depth",
+      "detection_logic": "referral_depth > threshold",
+      "recommended_action": "MONITOR",
+      "confidence": 0.72,
+      "false_positive_rate": 0.18,
+      "typologies": [
+        "PRO_001"
+      ],
+      "signal_type": "Network",
+      "source_layer": "Graph Engine",
+      "enabled": true,
+      "tags": [
+        "referral",
+        "farming",
+        "network"
+      ]
+    },
+    {
+      "signal_id": "NET_003",
+      "signal_name": "Promo Redemption Within Minutes of Eligibility",
+      "category": "Network & Platform",
+      "subcategory": "Promotion Intelligence",
+      "severity": "HIGH",
+      "base_score": 31,
+      "weight": 0.9,
+      "description": "Promotional credit redeemed within 10 minutes of eligibility. Indicates automation.",
+      "threshold_ref": "network.promo_redemption_window_minutes",
+      "detection_logic": "redemption_delta_minutes < threshold",
+      "recommended_action": "MANUAL_REVIEW",
+      "confidence": 0.78,
+      "false_positive_rate": 0.14,
+      "typologies": [
+        "PRO_001"
+      ],
+      "signal_type": "Temporal",
+      "source_layer": "Promotion Engine",
+      "enabled": true,
+      "tags": [
+        "promo",
+        "automation"
+      ]
+    },
+    {
+      "signal_id": "NET_004",
+      "signal_name": "Account Clustering by Registration Timestamp",
+      "category": "Network & Platform",
+      "subcategory": "Account Network Intelligence",
+      "severity": "MEDIUM",
+      "base_score": 24,
+      "weight": 0.8,
+      "description": "Multiple accounts registered within 5-minute window from similar IP ranges.",
+      "threshold_ref": "network.registration_cluster_window_minutes",
+      "detection_logic": "accounts_in_window >= 3 AND ip_subnet_overlap == true",
+      "recommended_action": "STEP_UP",
+      "confidence": 0.76,
+      "false_positive_rate": 0.16,
+      "typologies": [
+        "FAK_001",
+        "PRO_001"
+      ],
+      "signal_type": "Network",
+      "source_layer": "Graph Engine",
+      "enabled": true,
+      "tags": [
+        "registration",
+        "clustering"
+      ]
+    },
+    {
+      "signal_id": "NET_005",
+      "signal_name": "Outbound Transfer Immediately Post-Funding",
+      "category": "Network & Platform",
+      "subcategory": "Transaction Network Intelligence",
+      "severity": "CRITICAL",
+      "base_score": 47,
+      "weight": 1.0,
+      "description": "Outbound transfer initiated within 30 minutes of account funding. Primary mule indicator.",
+      "threshold_ref": "transaction.outbound_drain_window_minutes",
+      "detection_logic": "outbound_delta_from_funding_minutes < threshold",
+      "recommended_action": "BLOCK",
+      "confidence": 0.92,
+      "false_positive_rate": 0.04,
+      "typologies": [
+        "MUL_001"
+      ],
+      "signal_type": "Temporal",
+      "source_layer": "Transaction Engine",
+      "enabled": true,
+      "tags": [
+        "mule",
+        "drain",
+        "outbound"
+      ]
+    },
+    {
+      "signal_id": "NET_006",
+      "signal_name": "Circular Money Flow Detected",
+      "category": "Network & Platform",
+      "subcategory": "Graph Intelligence",
+      "severity": "CRITICAL",
+      "base_score": 48,
+      "weight": 1.0,
+      "description": "Transaction graph analysis reveals funds cycling through 3+ accounts before returning to origin. Layering indicator.",
+      "threshold_ref": null,
+      "detection_logic": "circular_flow_cycle_length >= 3 AND cycle_detected == true",
+      "recommended_action": "SUSPEND",
+      "confidence": 0.89,
+      "false_positive_rate": 0.05,
+      "typologies": [
+        "MUL_001"
+      ],
+      "signal_type": "Graph",
+      "source_layer": "Graph Engine",
+      "enabled": true,
+      "tags": [
+        "circular",
+        "layering",
+        "aml",
+        "graph"
+      ]
+    },
+    {
+      "signal_id": "NET_007",
+      "signal_name": "Shared Payment Instrument Across Accounts",
+      "category": "Network & Platform",
+      "subcategory": "Payment Network Intelligence",
+      "severity": "HIGH",
+      "base_score": 36,
+      "weight": 0.95,
+      "description": "Same card or payment instrument used across 2+ distinct accounts with different registered identities.",
+      "threshold_ref": null,
+      "detection_logic": "distinct_accounts_per_payment_instrument >= 2",
+      "recommended_action": "MANUAL_REVIEW",
+      "confidence": 0.87,
+      "false_positive_rate": 0.07,
+      "typologies": [
+        "ATO_001",
+        "PRO_001"
+      ],
+      "signal_type": "Network",
+      "source_layer": "Graph Engine",
+      "enabled": true,
+      "tags": [
+        "payment",
+        "shared",
+        "network"
+      ]
+    },
+    {
+      "signal_id": "NET_008",
+      "signal_name": "Fraud Ring Probability Score",
+      "category": "Network & Platform",
+      "subcategory": "Graph Intelligence",
+      "severity": "CRITICAL",
+      "base_score": 46,
+      "weight": 1.0,
+      "description": "ML graph model assigns high probability that account is part of an organised fraud ring.",
+      "threshold_ref": null,
+      "detection_logic": "fraud_ring_probability > 0.80",
+      "recommended_action": "SUSPEND",
+      "confidence": 0.88,
+      "false_positive_rate": 0.06,
+      "typologies": [
+        "FAK_001",
+        "PRO_001",
+        "MUL_001"
+      ],
+      "signal_type": "ML",
+      "source_layer": "Graph Engine",
+      "enabled": true,
+      "tags": [
+        "fraud-ring",
+        "ml",
+        "graph"
+      ]
+    },
+    {
+      "signal_id": "NET_009",
+      "signal_name": "Shared Beneficiary Graph Cluster",
+      "category": "Network & Platform",
+      "subcategory": "Beneficiary Network Intelligence",
+      "severity": "HIGH",
+      "base_score": 34,
+      "weight": 0.9,
+      "description": "Multiple unrelated accounts share the same outbound beneficiary. Indicates converging mule network.",
+      "threshold_ref": null,
+      "detection_logic": "distinct_accounts_per_beneficiary >= 3",
+      "recommended_action": "MANUAL_REVIEW",
+      "confidence": 0.84,
+      "false_positive_rate": 0.09,
+      "typologies": [
+        "MUL_001"
+      ],
+      "signal_type": "Network",
+      "source_layer": "Graph Engine",
+      "enabled": true,
+      "tags": [
+        "beneficiary",
+        "mule",
+        "network"
+      ]
+    },
+    {
+      "signal_id": "NET_010",
+      "signal_name": "Suspicious Network Density",
+      "category": "Network & Platform",
+      "subcategory": "Graph Intelligence",
+      "severity": "HIGH",
+      "base_score": 32,
+      "weight": 0.85,
+      "description": "Account's transaction network graph has unusually high density — too many connections for legitimate use case.",
+      "threshold_ref": null,
+      "detection_logic": "network_density_score > 0.85",
+      "recommended_action": "MANUAL_REVIEW",
+      "confidence": 0.8,
+      "false_positive_rate": 0.12,
+      "typologies": [
+        "MUL_001",
+        "PRO_001"
+      ],
+      "signal_type": "Graph",
+      "source_layer": "Graph Engine",
+      "enabled": true,
+      "tags": [
+        "density",
+        "network",
+        "graph"
+      ]
+    },
+    {
+      "signal_id": "PRM_001",
+      "signal_name": "Referral Farming Probability High",
+      "category": "Promo & Incentive Abuse",
+      "subcategory": "Referral Intelligence",
+      "severity": "HIGH",
+      "base_score": 35,
+      "weight": 0.95,
+      "description": "ML model assigns high probability of systematic referral farming based on account network patterns.",
+      "threshold_ref": null,
+      "detection_logic": "referral_farming_probability > 0.75",
+      "recommended_action": "VELOCITY_LIMIT",
+      "confidence": 0.82,
+      "false_positive_rate": 0.1,
+      "typologies": [
+        "PRO_001"
+      ],
+      "signal_type": "ML",
+      "source_layer": "Promotion Engine",
+      "enabled": true,
+      "tags": [
+        "referral",
+        "farming",
+        "ml"
+      ]
+    },
+    {
+      "signal_id": "PRM_002",
+      "signal_name": "Promo Redemption Velocity Spike",
+      "category": "Promo & Incentive Abuse",
+      "subcategory": "Velocity Intelligence",
+      "severity": "HIGH",
+      "base_score": 33,
+      "weight": 0.9,
+      "description": "Account redeems promotional offers at rate significantly higher than cohort average.",
+      "threshold_ref": null,
+      "detection_logic": "promo_redemption_rate > 3x_cohort_average",
+      "recommended_action": "VELOCITY_LIMIT",
+      "confidence": 0.8,
+      "false_positive_rate": 0.11,
+      "typologies": [
+        "PRO_001"
+      ],
+      "signal_type": "Velocity",
+      "source_layer": "Promotion Engine",
+      "enabled": true,
+      "tags": [
+        "promo",
+        "velocity",
+        "abuse"
+      ]
+    },
+    {
+      "signal_id": "PRM_003",
+      "signal_name": "Device Reuse in Rewards Programme",
+      "category": "Promo & Incentive Abuse",
+      "subcategory": "Device Intelligence",
+      "severity": "HIGH",
+      "base_score": 36,
+      "weight": 0.9,
+      "description": "Same device fingerprint used to claim rewards across multiple reward programme accounts.",
+      "threshold_ref": "network.shared_device_account_threshold",
+      "detection_logic": "reward_claims_per_device > threshold",
+      "recommended_action": "MANUAL_REVIEW",
+      "confidence": 0.83,
+      "false_positive_rate": 0.09,
+      "typologies": [
+        "PRO_001"
+      ],
+      "signal_type": "Network",
+      "source_layer": "Device Engine",
+      "enabled": true,
+      "tags": [
+        "rewards",
+        "device",
+        "farming"
+      ]
+    },
+    {
+      "signal_id": "PRM_004",
+      "signal_name": "Geographic Clustering of Reward Abuse",
+      "category": "Promo & Incentive Abuse",
+      "subcategory": "Geolocation Intelligence",
+      "severity": "HIGH",
+      "base_score": 29,
+      "weight": 0.8,
+      "description": "Multiple reward abuse incidents clustered from the same geographic area or IP subnet.",
+      "threshold_ref": null,
+      "detection_logic": "geo_cluster_radius_km < 10 AND abuse_count >= 5",
+      "recommended_action": "MANUAL_REVIEW",
+      "confidence": 0.77,
+      "false_positive_rate": 0.14,
+      "typologies": [
+        "PRO_001"
+      ],
+      "signal_type": "Network",
+      "source_layer": "Promotion Engine",
+      "enabled": true,
+      "tags": [
+        "geo",
+        "cluster",
+        "rewards"
+      ]
+    },
+    {
+      "signal_id": "PRM_005",
+      "signal_name": "Synthetic Referral Chain",
+      "category": "Promo & Incentive Abuse",
+      "subcategory": "Referral Intelligence",
+      "severity": "CRITICAL",
+      "base_score": 43,
+      "weight": 1.0,
+      "description": "Referral chain contains accounts sharing device, IP, or identity signals — indicating fabricated referral network.",
+      "threshold_ref": null,
+      "detection_logic": "referral_chain_shared_signals >= 2",
+      "recommended_action": "SUSPEND",
+      "confidence": 0.87,
+      "false_positive_rate": 0.06,
+      "typologies": [
+        "PRO_001",
+        "FAK_001"
+      ],
+      "signal_type": "Network",
+      "source_layer": "Graph Engine",
+      "enabled": true,
+      "tags": [
+        "referral",
+        "synthetic",
+        "farming"
+      ]
+    },
+    {
+      "signal_id": "PRM_006",
+      "signal_name": "Reward Extraction Behaviour",
+      "category": "Promo & Incentive Abuse",
+      "subcategory": "Transaction Intelligence",
+      "severity": "HIGH",
+      "base_score": 32,
+      "weight": 0.85,
+      "description": "Account claims reward then immediately converts and withdraws without platform engagement.",
+      "threshold_ref": null,
+      "detection_logic": "time_reward_to_withdrawal_minutes < 30 AND platform_engagement_score < 0.2",
+      "recommended_action": "VELOCITY_LIMIT",
+      "confidence": 0.81,
+      "false_positive_rate": 0.11,
+      "typologies": [
+        "PRO_001"
+      ],
+      "signal_type": "Temporal",
+      "source_layer": "Promotion Engine",
+      "enabled": true,
+      "tags": [
+        "reward",
+        "extraction",
+        "drain"
+      ]
+    },
+    {
+      "signal_id": "PRM_007",
+      "signal_name": "Campaign Abuse Density",
+      "category": "Promo & Incentive Abuse",
+      "subcategory": "Campaign Intelligence",
+      "severity": "HIGH",
+      "base_score": 30,
+      "weight": 0.85,
+      "description": "Unusually high proportion of campaign redemptions from accounts with overlapping identity or device signals.",
+      "threshold_ref": null,
+      "detection_logic": "campaign_abuse_density_score > 0.70",
+      "recommended_action": "MONITOR",
+      "confidence": 0.78,
+      "false_positive_rate": 0.14,
+      "typologies": [
+        "PRO_001"
+      ],
+      "signal_type": "Attribute",
+      "source_layer": "Promotion Engine",
+      "enabled": true,
+      "tags": [
+        "campaign",
+        "density",
+        "abuse"
+      ]
+    },
+    {
+      "signal_id": "MKT_001",
+      "signal_name": "Seller Reputation Inflation Pattern",
+      "category": "Marketplace & Platform Abuse",
+      "subcategory": "Reputation Intelligence",
+      "severity": "HIGH",
+      "base_score": 30,
+      "weight": 0.85,
+      "description": "Rapid unusual increase in positive seller reviews correlated with accounts sharing device or IP signals.",
+      "threshold_ref": null,
+      "detection_logic": "review_velocity > 3x_baseline AND reviewer_shared_signals >= 2",
+      "recommended_action": "MANUAL_REVIEW",
+      "confidence": 0.78,
+      "false_positive_rate": 0.14,
+      "typologies": [
+        "FAK_001"
+      ],
+      "signal_type": "Network",
+      "source_layer": "Platform Engine",
+      "enabled": true,
+      "tags": [
+        "seller",
+        "reviews",
+        "inflation"
+      ]
+    },
+    {
+      "signal_id": "MKT_002",
+      "signal_name": "Fake Review Coordination",
+      "category": "Marketplace & Platform Abuse",
+      "subcategory": "Reputation Intelligence",
+      "severity": "HIGH",
+      "base_score": 34,
+      "weight": 0.9,
+      "description": "Multiple reviews for same seller/product from accounts sharing device, IP, or registration timestamp.",
+      "threshold_ref": null,
+      "detection_logic": "review_accounts_shared_signals >= 3",
+      "recommended_action": "MANUAL_REVIEW",
+      "confidence": 0.82,
+      "false_positive_rate": 0.1,
+      "typologies": [
+        "FAK_001"
+      ],
+      "signal_type": "Network",
+      "source_layer": "Platform Engine",
+      "enabled": true,
+      "tags": [
+        "reviews",
+        "fake",
+        "coordination"
+      ]
+    },
+    {
+      "signal_id": "MKT_003",
+      "signal_name": "Listing Duplication Pattern",
+      "category": "Marketplace & Platform Abuse",
+      "subcategory": "Listing Intelligence",
+      "severity": "MEDIUM",
+      "base_score": 22,
+      "weight": 0.75,
+      "description": "Seller creates multiple near-identical listings, often to manipulate search rankings or bypass suspensions.",
+      "threshold_ref": null,
+      "detection_logic": "listing_similarity_score > 0.90 AND distinct_listing_count >= 3",
+      "recommended_action": "MONITOR",
+      "confidence": 0.71,
+      "false_positive_rate": 0.18,
+      "typologies": [
+        "FAK_001"
+      ],
+      "signal_type": "Pattern",
+      "source_layer": "Platform Engine",
+      "enabled": true,
+      "tags": [
+        "listing",
+        "duplicate",
+        "manipulation"
+      ]
+    },
+    {
+      "signal_id": "MKT_004",
+      "signal_name": "Return Fraud Pattern",
+      "category": "Marketplace & Platform Abuse",
+      "subcategory": "Returns Intelligence",
+      "severity": "HIGH",
+      "base_score": 33,
+      "weight": 0.88,
+      "description": "Account has return rate significantly above platform cohort average, or returns items claimed as undelivered.",
+      "threshold_ref": null,
+      "detection_logic": "return_rate > 5x_cohort_average OR false_delivery_claim_count >= 2",
+      "recommended_action": "MANUAL_REVIEW",
+      "confidence": 0.8,
+      "false_positive_rate": 0.12,
+      "typologies": [
+        "TXF_001"
+      ],
+      "signal_type": "Attribute",
+      "source_layer": "Platform Engine",
+      "enabled": true,
+      "tags": [
+        "returns",
+        "fraud",
+        "abuse"
+      ]
+    },
+    {
+      "signal_id": "MKT_005",
+      "signal_name": "Synthetic Buyer-Seller Loop",
+      "category": "Marketplace & Platform Abuse",
+      "subcategory": "Graph Intelligence",
+      "severity": "CRITICAL",
+      "base_score": 44,
+      "weight": 1.0,
+      "description": "Transaction graph reveals circular buyer-seller relationships between accounts with shared signals — washing trades.",
+      "threshold_ref": null,
+      "detection_logic": "buyer_seller_loop_detected == true AND shared_signals >= 2",
+      "recommended_action": "SUSPEND",
+      "confidence": 0.88,
+      "false_positive_rate": 0.05,
+      "typologies": [
+        "FAK_001",
+        "MUL_001"
+      ],
+      "signal_type": "Graph",
+      "source_layer": "Graph Engine",
+      "enabled": true,
+      "tags": [
+        "loop",
+        "washing",
+        "synthetic"
+      ]
+    },
+    {
+      "signal_id": "MKT_006",
+      "signal_name": "Payout Abuse Signal",
+      "category": "Marketplace & Platform Abuse",
+      "subcategory": "Payout Intelligence",
+      "severity": "HIGH",
+      "base_score": 36,
+      "weight": 0.9,
+      "description": "Seller initiates payout immediately after first sale, before delivery confirmation. Risk of non-delivery fraud.",
+      "threshold_ref": null,
+      "detection_logic": "payout_request_delta_from_sale_hours < 2 AND delivery_confirmed == false",
+      "recommended_action": "STEP_UP",
+      "confidence": 0.83,
+      "false_positive_rate": 0.09,
+      "typologies": [
+        "TXF_001"
+      ],
+      "signal_type": "Temporal",
+      "source_layer": "Platform Engine",
+      "enabled": true,
+      "tags": [
+        "payout",
+        "seller",
+        "abuse"
+      ]
+    },
+    {
+      "signal_id": "MKT_007",
+      "signal_name": "Escrow Abuse Indicators",
+      "category": "Marketplace & Platform Abuse",
+      "subcategory": "Transaction Intelligence",
+      "severity": "HIGH",
+      "base_score": 32,
+      "weight": 0.85,
+      "description": "Buyer triggers escrow dispute immediately after funds released, or pattern matches known escrow manipulation.",
+      "threshold_ref": null,
+      "detection_logic": "escrow_dispute_delta_hours < 1 OR escrow_dispute_rate > 3x_cohort",
+      "recommended_action": "MANUAL_REVIEW",
+      "confidence": 0.8,
+      "false_positive_rate": 0.12,
+      "typologies": [
+        "TXF_001"
+      ],
+      "signal_type": "Pattern",
+      "source_layer": "Platform Engine",
+      "enabled": true,
+      "tags": [
+        "escrow",
+        "dispute",
+        "abuse"
+      ]
+    },
+    {
+      "signal_id": "MUL_001",
+      "signal_name": "Multiple Inbound Sources to Single Outbound",
+      "category": "Mule & Financial Crime",
+      "subcategory": "Layering Detection",
+      "severity": "CRITICAL",
+      "base_score": 46,
+      "weight": 1.0,
+      "description": "Multiple small inbounds from distinct sources aggregated to single large outbound. Classic layering.",
+      "threshold_ref": null,
+      "detection_logic": "inbound_source_count >= 3 AND outbound_count == 1 AND window_hours <= 24",
+      "recommended_action": "BLOCK",
+      "confidence": 0.9,
+      "false_positive_rate": 0.05,
+      "typologies": [
+        "MUL_001"
+      ],
+      "signal_type": "Pattern",
+      "source_layer": "Graph Engine",
+      "enabled": true,
+      "tags": [
+        "mule",
+        "layering",
+        "aml"
+      ]
+    },
+    {
+      "signal_id": "MUL_002",
+      "signal_name": "New Beneficiary Account Age Under 48 Hours",
+      "category": "Mule & Financial Crime",
+      "subcategory": "Beneficiary Intelligence",
+      "severity": "HIGH",
+      "base_score": 36,
+      "weight": 0.95,
+      "description": "Outbound transfer destination account created fewer than 48 hours before receiving funds.",
+      "threshold_ref": "transaction.new_beneficiary_age_min_hours",
+      "detection_logic": "beneficiary_account_age_hours < threshold",
+      "recommended_action": "MANUAL_REVIEW",
+      "confidence": 0.83,
+      "false_positive_rate": 0.11,
+      "typologies": [
+        "MUL_001"
+      ],
+      "signal_type": "Attribute",
+      "source_layer": "Transaction Engine",
+      "enabled": true,
+      "tags": [
+        "mule",
+        "new-account",
+        "beneficiary"
+      ]
+    },
+    {
+      "signal_id": "MUL_003",
+      "signal_name": "Account Dormancy Followed by Sudden Activity",
+      "category": "Mule & Financial Crime",
+      "subcategory": "Account Lifecycle",
+      "severity": "HIGH",
+      "base_score": 34,
+      "weight": 0.9,
+      "description": "Account inactive for 90+ days initiates high-value outbound transactions. Aged mule typology.",
+      "threshold_ref": null,
+      "detection_logic": "last_activity_days > 90 AND current_txn_amount > 5x_historical_avg",
+      "recommended_action": "MANUAL_REVIEW",
+      "confidence": 0.81,
+      "false_positive_rate": 0.13,
+      "typologies": [
+        "MUL_001"
+      ],
+      "signal_type": "Lifecycle",
+      "source_layer": "Auth Engine",
+      "enabled": true,
+      "tags": [
+        "mule",
+        "dormant",
+        "lifecycle"
+      ]
+    },
+    {
+      "signal_id": "MUL_004",
+      "signal_name": "High Outbound-to-Inbound Ratio",
+      "category": "Mule & Financial Crime",
+      "subcategory": "Cash Flow Intelligence",
+      "severity": "HIGH",
+      "base_score": 33,
+      "weight": 0.88,
+      "description": "Account outbound transaction value exceeds 90% of total inbound value within 7-day rolling window.",
+      "threshold_ref": null,
+      "detection_logic": "outbound_ratio_7d > 0.90",
+      "recommended_action": "MONITOR",
+      "confidence": 0.79,
+      "false_positive_rate": 0.14,
+      "typologies": [
+        "MUL_001"
+      ],
+      "signal_type": "Attribute",
+      "source_layer": "Transaction Engine",
+      "enabled": true,
+      "tags": [
+        "mule",
+        "cashout",
+        "ratio"
+      ]
+    },
+    {
+      "signal_id": "MUL_005",
+      "signal_name": "Cashout Acceleration Pattern",
+      "category": "Mule & Financial Crime",
+      "subcategory": "Temporal Intelligence",
+      "severity": "CRITICAL",
+      "base_score": 44,
+      "weight": 1.0,
+      "description": "Progressive increase in cashout frequency and value over 30 days, consistent with mule account maturing.",
+      "threshold_ref": null,
+      "detection_logic": "cashout_velocity_trend == INCREASING AND trend_duration_days >= 14",
+      "recommended_action": "SUSPEND",
+      "confidence": 0.86,
+      "false_positive_rate": 0.07,
+      "typologies": [
+        "MUL_001"
+      ],
+      "signal_type": "Temporal",
+      "source_layer": "Transaction Engine",
+      "enabled": true,
+      "tags": [
+        "mule",
+        "cashout",
+        "acceleration"
+      ]
+    },
+    {
+      "signal_id": "MUL_006",
+      "signal_name": "Cross-Border Relay Anomaly",
+      "category": "Mule & Financial Crime",
+      "subcategory": "Geolocation Intelligence",
+      "severity": "HIGH",
+      "base_score": 35,
+      "weight": 0.9,
+      "description": "Funds pass through 2+ jurisdictions within 24 hours with no plausible commercial reason.",
+      "threshold_ref": null,
+      "detection_logic": "distinct_jurisdictions_24h >= 2 AND commercial_purpose_score < 0.3",
+      "recommended_action": "MANUAL_REVIEW",
+      "confidence": 0.82,
+      "false_positive_rate": 0.1,
+      "typologies": [
+        "MUL_001"
+      ],
+      "signal_type": "Geolocation",
+      "source_layer": "Transaction Engine",
+      "enabled": true,
+      "tags": [
+        "cross-border",
+        "relay",
+        "jurisdiction"
+      ]
+    },
+    {
+      "signal_id": "MUL_007",
+      "signal_name": "Transaction Narrative Inconsistency",
+      "category": "Mule & Financial Crime",
+      "subcategory": "Transaction Intelligence",
+      "severity": "MEDIUM",
+      "base_score": 23,
+      "weight": 0.75,
+      "description": "Payment reference narrative inconsistent with account profile, geography, or transaction history.",
+      "threshold_ref": null,
+      "detection_logic": "narrative_consistency_score < 0.4",
+      "recommended_action": "MONITOR",
+      "confidence": 0.7,
+      "false_positive_rate": 0.2,
+      "typologies": [
+        "MUL_001"
+      ],
+      "signal_type": "Attribute",
+      "source_layer": "Transaction Engine",
+      "enabled": true,
+      "tags": [
+        "narrative",
+        "inconsistency",
+        "mule"
+      ]
+    },
+    {
+      "signal_id": "OPS_001",
+      "signal_name": "Manual Review Queue Saturation Risk",
+      "category": "Operational Risk",
+      "subcategory": "Queue Intelligence",
+      "severity": "HIGH",
+      "base_score": 30,
+      "weight": 0.85,
+      "description": "Review queue volume projected to exceed analyst capacity within 4 hours based on current ingestion rate.",
+      "threshold_ref": null,
+      "detection_logic": "projected_queue_depth_4h > analyst_daily_capacity",
+      "recommended_action": "MANUAL_REVIEW",
+      "confidence": 0.78,
+      "false_positive_rate": 0.15,
+      "typologies": [
+        "INT_001"
+      ],
+      "signal_type": "Operational",
+      "source_layer": "Review Engine",
+      "enabled": true,
+      "tags": [
+        "queue",
+        "saturation",
+        "capacity"
+      ]
+    },
+    {
+      "signal_id": "OPS_002",
+      "signal_name": "Escalation Queue Aging",
+      "category": "Operational Risk",
+      "subcategory": "SLA Intelligence",
+      "severity": "HIGH",
+      "base_score": 28,
+      "weight": 0.8,
+      "description": "Cases in escalation queue have exceeded defined SLA threshold without resolution.",
+      "threshold_ref": "severity_framework.HIGH.sla_hours",
+      "detection_logic": "case_age_hours > sla_threshold AND status == OPEN",
+      "recommended_action": "MANUAL_REVIEW",
+      "confidence": 0.82,
+      "false_positive_rate": 0.1,
+      "typologies": [
+        "INT_001"
+      ],
+      "signal_type": "Operational",
+      "source_layer": "Review Engine",
+      "enabled": true,
+      "tags": [
+        "sla",
+        "aging",
+        "escalation"
+      ]
+    },
+    {
+      "signal_id": "OPS_003",
+      "signal_name": "Review Abandonment Probability",
+      "category": "Operational Risk",
+      "subcategory": "Analyst Intelligence",
+      "severity": "MEDIUM",
+      "base_score": 20,
+      "weight": 0.7,
+      "description": "ML model assigns high probability that analyst will abandon case before resolution based on case complexity.",
+      "threshold_ref": null,
+      "detection_logic": "abandonment_probability > 0.65",
+      "recommended_action": "MONITOR",
+      "confidence": 0.67,
+      "false_positive_rate": 0.24,
+      "typologies": [
+        "INT_001"
+      ],
+      "signal_type": "ML",
+      "source_layer": "Review Engine",
+      "enabled": true,
+      "tags": [
+        "abandonment",
+        "analyst",
+        "ml"
+      ]
+    },
+    {
+      "signal_id": "OPS_004",
+      "signal_name": "False-Negative Drift Detection",
+      "category": "Operational Risk",
+      "subcategory": "Model Performance",
+      "severity": "HIGH",
+      "base_score": 32,
+      "weight": 0.85,
+      "description": "False-negative rate for a signal or model has increased significantly over trailing 7-day window.",
+      "threshold_ref": null,
+      "detection_logic": "fn_rate_7d > 1.5x_baseline_fn_rate",
+      "recommended_action": "MANUAL_REVIEW",
+      "confidence": 0.8,
+      "false_positive_rate": 0.12,
+      "typologies": [
+        "INT_001"
+      ],
+      "signal_type": "Operational",
+      "source_layer": "Analytics Engine",
+      "enabled": true,
+      "tags": [
+        "false-negative",
+        "drift",
+        "model"
+      ]
+    },
+    {
+      "signal_id": "OPS_005",
+      "signal_name": "Alert Suppression Anomaly",
+      "category": "Operational Risk",
+      "subcategory": "Rule Intelligence",
+      "severity": "CRITICAL",
+      "base_score": 40,
+      "weight": 0.95,
+      "description": "Unusual spike in suppressed or auto-closed alerts without analyst action. Potential rule fatigue or bypass.",
+      "threshold_ref": null,
+      "detection_logic": "suppression_rate_delta > 2x_baseline AND analyst_action_rate < 0.2",
+      "recommended_action": "MANUAL_REVIEW",
+      "confidence": 0.84,
+      "false_positive_rate": 0.08,
+      "typologies": [
+        "INT_001"
+      ],
+      "signal_type": "Operational",
+      "source_layer": "Rules Engine",
+      "enabled": true,
+      "tags": [
+        "suppression",
+        "alert",
+        "fatigue"
+      ]
+    },
+    {
+      "signal_id": "OPS_006",
+      "signal_name": "Rule Fatigue Indicator",
+      "category": "Operational Risk",
+      "subcategory": "Rule Intelligence",
+      "severity": "MEDIUM",
+      "base_score": 22,
+      "weight": 0.75,
+      "description": "Specific fraud rule has fired continuously for 7+ days with low actioning rate, indicating analyst desensitisation.",
+      "threshold_ref": null,
+      "detection_logic": "rule_fire_streak_days >= 7 AND action_rate < 0.15",
+      "recommended_action": "MONITOR",
+      "confidence": 0.71,
+      "false_positive_rate": 0.2,
+      "typologies": [
+        "INT_001"
+      ],
+      "signal_type": "Operational",
+      "source_layer": "Rules Engine",
+      "enabled": true,
+      "tags": [
+        "rule-fatigue",
+        "alert",
+        "operational"
+      ]
+    },
+    {
+      "signal_id": "OPS_007",
+      "signal_name": "Analyst Inconsistency Rate High",
+      "category": "Operational Risk",
+      "subcategory": "Quality Intelligence",
+      "severity": "HIGH",
+      "base_score": 27,
+      "weight": 0.8,
+      "description": "Specific analyst's case disposition rate diverges significantly from team consensus on similar case types.",
+      "threshold_ref": null,
+      "detection_logic": "analyst_inconsistency_score > 2.0",
+      "recommended_action": "MONITOR",
+      "confidence": 0.74,
+      "false_positive_rate": 0.17,
+      "typologies": [
+        "INT_001"
+      ],
+      "signal_type": "Operational",
+      "source_layer": "Quality Engine",
+      "enabled": true,
+      "tags": [
+        "analyst",
+        "inconsistency",
+        "quality"
+      ]
+    },
+    {
+      "signal_id": "TAS_001",
+      "signal_name": "Coordinated Harassment Network",
+      "category": "Trust & Safety",
+      "subcategory": "Network Abuse Intelligence",
+      "severity": "HIGH",
+      "base_score": 35,
+      "weight": 0.9,
+      "description": "Multiple accounts sending abusive or threatening content to same target within a short window.",
+      "threshold_ref": null,
+      "detection_logic": "distinct_accounts_targeting_same_user >= 3 AND abuse_content_score > 0.7",
+      "recommended_action": "SUSPEND",
+      "confidence": 0.83,
+      "false_positive_rate": 0.09,
+      "typologies": [
+        "FAK_001"
+      ],
+      "signal_type": "Network",
+      "source_layer": "Safety Engine",
+      "enabled": true,
+      "tags": [
+        "harassment",
+        "coordinated",
+        "network"
+      ]
+    },
+    {
+      "signal_id": "TAS_002",
+      "signal_name": "Account Reputation Drift",
+      "category": "Trust & Safety",
+      "subcategory": "Reputation Intelligence",
+      "severity": "MEDIUM",
+      "base_score": 21,
+      "weight": 0.7,
+      "description": "Account trust score has declined progressively over 14 days based on community reports and platform signals.",
+      "threshold_ref": null,
+      "detection_logic": "trust_score_14d_delta < -0.30",
+      "recommended_action": "MONITOR",
+      "confidence": 0.68,
+      "false_positive_rate": 0.22,
+      "typologies": [
+        "FAK_001"
+      ],
+      "signal_type": "Temporal",
+      "source_layer": "Safety Engine",
+      "enabled": true,
+      "tags": [
+        "reputation",
+        "drift",
+        "trust"
+      ]
+    },
+    {
+      "signal_id": "TAS_003",
+      "signal_name": "Spam Automation Indicators",
+      "category": "Trust & Safety",
+      "subcategory": "Content Intelligence",
+      "severity": "HIGH",
+      "base_score": 32,
+      "weight": 0.85,
+      "description": "Account sending messages at rate and uniformity inconsistent with human behaviour. Spam bot indicator.",
+      "threshold_ref": null,
+      "detection_logic": "message_rate_per_minute > 10 AND message_similarity_score > 0.85",
+      "recommended_action": "VELOCITY_LIMIT",
+      "confidence": 0.82,
+      "false_positive_rate": 0.1,
+      "typologies": [
+        "FAK_001"
+      ],
+      "signal_type": "Velocity",
+      "source_layer": "Safety Engine",
+      "enabled": true,
+      "tags": [
+        "spam",
+        "automation",
+        "messaging"
+      ]
+    },
+    {
+      "signal_id": "TAS_004",
+      "signal_name": "Multi-Account Ban Evasion",
+      "category": "Trust & Safety",
+      "subcategory": "Account Lifecycle Intelligence",
+      "severity": "CRITICAL",
+      "base_score": 45,
+      "weight": 1.0,
+      "description": "New account shares device, IP, or identity signals with a previously banned account.",
+      "threshold_ref": null,
+      "detection_logic": "device_match_to_banned_account OR ip_match_to_banned_account OR identity_match_to_banned_account",
+      "recommended_action": "SUSPEND",
+      "confidence": 0.9,
+      "false_positive_rate": 0.04,
+      "typologies": [
+        "FAK_001",
+        "ATO_001"
+      ],
+      "signal_type": "Network",
+      "source_layer": "Safety Engine",
+      "enabled": true,
+      "tags": [
+        "ban-evasion",
+        "multi-account",
+        "shadow"
+      ]
+    },
+    {
+      "signal_id": "TAS_005",
+      "signal_name": "Fake Engagement Cluster",
+      "category": "Trust & Safety",
+      "subcategory": "Content Intelligence",
+      "severity": "HIGH",
+      "base_score": 30,
+      "weight": 0.82,
+      "description": "Coordinated engagement (likes, follows, shares) from accounts sharing device or registration signals.",
+      "threshold_ref": null,
+      "detection_logic": "engagement_accounts_shared_signals >= 3",
+      "recommended_action": "MANUAL_REVIEW",
+      "confidence": 0.79,
+      "false_positive_rate": 0.13,
+      "typologies": [
+        "FAK_001"
+      ],
+      "signal_type": "Network",
+      "source_layer": "Safety Engine",
+      "enabled": true,
+      "tags": [
+        "fake-engagement",
+        "coordination",
+        "platform"
+      ]
+    },
+    {
+      "signal_id": "TAS_006",
+      "signal_name": "Content Abuse Velocity",
+      "category": "Trust & Safety",
+      "subcategory": "Content Intelligence",
+      "severity": "HIGH",
+      "base_score": 29,
+      "weight": 0.8,
+      "description": "Account generating policy-violating content at volume significantly above platform cohort norms.",
+      "threshold_ref": null,
+      "detection_logic": "abuse_content_rate > 5x_cohort_average",
+      "recommended_action": "VELOCITY_LIMIT",
+      "confidence": 0.77,
+      "false_positive_rate": 0.15,
+      "typologies": [
+        "FAK_001"
+      ],
+      "signal_type": "Velocity",
+      "source_layer": "Safety Engine",
+      "enabled": true,
+      "tags": [
+        "content",
+        "abuse",
+        "velocity"
+      ]
+    },
+    {
+      "signal_id": "AGT_001",
+      "signal_name": "Agent Override Exceeds Authority Threshold",
+      "category": "Agent & Internal Risk",
+      "subcategory": "Authority Intelligence",
+      "severity": "HIGH",
+      "base_score": 44,
+      "weight": 0.95,
+      "description": "Agent approval or override amount exceeds their designated authority limit.",
+      "threshold_ref": "agent.max_override_amount_inr",
+      "detection_logic": "approval_amount > agent.authority_limit",
+      "recommended_action": "MANUAL_REVIEW",
+      "confidence": 0.87,
+      "false_positive_rate": 0.06,
+      "typologies": [
+        "INT_001"
+      ],
+      "signal_type": "Attribute",
+      "source_layer": "Agent Engine",
+      "enabled": true,
+      "tags": [
+        "agent",
+        "authority",
+        "override"
+      ]
+    },
+    {
+      "signal_id": "AGT_002",
+      "signal_name": "Bulk Approvals in Short Window",
+      "category": "Agent & Internal Risk",
+      "subcategory": "Velocity Intelligence",
+      "severity": "HIGH",
+      "base_score": 33,
+      "weight": 0.9,
+      "description": "Agent approves 5+ transactions within 15 minutes without standard review intervals.",
+      "threshold_ref": "agent.bulk_approval_threshold",
+      "detection_logic": "approvals_15min >= threshold AND review_interval_seconds < 30",
+      "recommended_action": "MANUAL_REVIEW",
+      "confidence": 0.82,
+      "false_positive_rate": 0.1,
+      "typologies": [
+        "INT_001"
+      ],
+      "signal_type": "Velocity",
+      "source_layer": "Agent Engine",
+      "enabled": true,
+      "tags": [
+        "agent",
+        "bulk",
+        "velocity"
+      ]
+    },
+    {
+      "signal_id": "AGT_003",
+      "signal_name": "Off-Hours High-Value Approval",
+      "category": "Agent & Internal Risk",
+      "subcategory": "Temporal Intelligence",
+      "severity": "MEDIUM",
+      "base_score": 25,
+      "weight": 0.8,
+      "description": "Agent approves high-value transaction outside defined business hours (10pm–6am).",
+      "threshold_ref": "agent.off_hours_approval_flag_start",
+      "detection_logic": "approval_time outside business_hours",
+      "recommended_action": "MONITOR",
+      "confidence": 0.7,
+      "false_positive_rate": 0.2,
+      "typologies": [
+        "INT_001"
+      ],
+      "signal_type": "Temporal",
+      "source_layer": "Agent Engine",
+      "enabled": true,
+      "tags": [
+        "agent",
+        "off-hours",
+        "temporal"
+      ]
+    },
+    {
+      "signal_id": "AGT_004",
+      "signal_name": "New Agent Processing High-Value Cases",
+      "category": "Agent & Internal Risk",
+      "subcategory": "Agent Lifecycle Intelligence",
+      "severity": "MEDIUM",
+      "base_score": 22,
+      "weight": 0.75,
+      "description": "Agent account fewer than 30 days old processing cases above standard value thresholds.",
+      "threshold_ref": "agent.new_agent_high_value_window_days",
+      "detection_logic": "agent_tenure_days < threshold AND case_value > standard_threshold",
+      "recommended_action": "STEP_UP",
+      "confidence": 0.67,
+      "false_positive_rate": 0.22,
+      "typologies": [
+        "INT_001"
+      ],
+      "signal_type": "Lifecycle",
+      "source_layer": "Agent Engine",
+      "enabled": true,
+      "tags": [
+        "agent",
+        "new",
+        "high-value"
+      ]
+    },
+    {
+      "signal_id": "AGT_005",
+      "signal_name": "Agent Self-Approval Pattern",
+      "category": "Agent & Internal Risk",
+      "subcategory": "Authority Intelligence",
+      "severity": "CRITICAL",
+      "base_score": 48,
+      "weight": 1.0,
+      "description": "Agent approves transaction or case where they are listed as beneficiary or related party.",
+      "threshold_ref": null,
+      "detection_logic": "approver_id == beneficiary_linked_agent_id",
+      "recommended_action": "BLOCK",
+      "confidence": 0.95,
+      "false_positive_rate": 0.01,
+      "typologies": [
+        "INT_001"
+      ],
+      "signal_type": "Attribute",
+      "source_layer": "Agent Engine",
+      "enabled": true,
+      "tags": [
+        "agent",
+        "self-approval",
+        "conflict"
+      ]
+    },
+    {
+      "signal_id": "AGT_006",
+      "signal_name": "Approval Cluster Targeting Same Customer",
+      "category": "Agent & Internal Risk",
+      "subcategory": "Pattern Intelligence",
+      "severity": "HIGH",
+      "base_score": 34,
+      "weight": 0.88,
+      "description": "Single agent repeatedly approves high-value cases for the same customer — potential collusion.",
+      "threshold_ref": null,
+      "detection_logic": "same_customer_approvals_by_agent >= 5 AND customer_risk_score > 60",
+      "recommended_action": "MANUAL_REVIEW",
+      "confidence": 0.83,
+      "false_positive_rate": 0.09,
+      "typologies": [
+        "INT_001"
+      ],
+      "signal_type": "Pattern",
+      "source_layer": "Agent Engine",
+      "enabled": true,
+      "tags": [
+        "agent",
+        "collusion",
+        "pattern"
+      ]
+    },
+    {
+      "signal_id": "AGT_007",
+      "signal_name": "Agent Credential Sharing Indicators",
+      "category": "Agent & Internal Risk",
+      "subcategory": "Authentication Intelligence",
+      "severity": "CRITICAL",
+      "base_score": 46,
+      "weight": 1.0,
+      "description": "Same agent credentials used from multiple device fingerprints simultaneously or in rapid succession.",
+      "threshold_ref": null,
+      "detection_logic": "distinct_devices_per_agent_session >= 2 OR session_switch_minutes < 2",
+      "recommended_action": "SUSPEND",
+      "confidence": 0.89,
+      "false_positive_rate": 0.05,
+      "typologies": [
+        "INT_001"
+      ],
+      "signal_type": "Session",
+      "source_layer": "Agent Engine",
+      "enabled": true,
+      "tags": [
+        "agent",
+        "credential-sharing",
+        "security"
+      ]
+    },
+    {
+      "signal_id": "AGT_008",
+      "signal_name": "Case Tampering Probability",
+      "category": "Agent & Internal Risk",
+      "subcategory": "Audit Intelligence",
+      "severity": "HIGH",
+      "base_score": 36,
+      "weight": 0.9,
+      "description": "Case activity log shows edits or status changes outside normal workflow sequence.",
+      "threshold_ref": null,
+      "detection_logic": "out_of_sequence_status_changes >= 2 OR log_gap_minutes > 60",
+      "recommended_action": "MANUAL_REVIEW",
+      "confidence": 0.84,
+      "false_positive_rate": 0.08,
+      "typologies": [
+        "INT_001"
+      ],
+      "signal_type": "Audit",
+      "source_layer": "Agent Engine",
+      "enabled": true,
+      "tags": [
+        "tampering",
+        "audit",
+        "case"
+      ]
+    },
+    {
+      "signal_id": "GFT_001",
+      "signal_name": "Bulk Gift Card Purchase on New Account",
+      "category": "Transaction & Payment",
+      "subcategory": "Gift Card Abuse",
+      "severity": "HIGH",
+      "base_score": 52,
+      "weight": 1.0,
+      "description": "Large gift card purchase volume on a newly created account. Strong indicator of gift card fraud or money laundering via prepaid instruments.",
+      "threshold_ref": "transaction.gift_card_bulk_purchase_min_inr",
+      "detection_logic": "gift_card_purchase_volume_24h_inr >= threshold AND account_age_days < gift_card_new_account_age_max_days",
+      "recommended_action": "REVIEW",
+      "confidence": 0.82,
+      "false_positive_rate": 0.1,
+      "typologies": [
+        "GFT_001"
+      ],
+      "signal_type": "Attribute",
+      "source_layer": "Transaction Engine",
+      "enabled": true,
+      "tags": [
+        "gift-card",
+        "new-account",
+        "prepaid",
+        "fraud"
+      ]
+    },
+    {
+      "signal_id": "TXN_012",
+      "signal_name": "CVV Failure Velocity on Single Card",
+      "category": "Transaction & Payment",
+      "subcategory": "Card Testing",
+      "severity": "CRITICAL",
+      "base_score": 46,
+      "weight": 1.0,
+      "description": "Multiple CVV failures on the same card within a session. Indicates brute-force card validation attack.",
+      "threshold_ref": "transaction.cvv_fail_max_per_card",
+      "detection_logic": "cvv_fail_count >= cvv_fail_max_per_card",
+      "recommended_action": "BLOCK",
+      "confidence": 0.95,
+      "false_positive_rate": 0.02,
+      "typologies": [
+        "CRDTEST_001"
+      ],
+      "signal_type": "Velocity",
+      "source_layer": "Transaction Engine",
+      "enabled": true,
+      "tags": [
+        "card-testing",
+        "cvv",
+        "brute-force",
+        "critical"
+      ]
+    },
+    {
+      "signal_id": "TXN_013",
+      "signal_name": "High Distinct Card Attempts Per Device",
+      "category": "Transaction & Payment",
+      "subcategory": "Card Testing",
+      "severity": "CRITICAL",
+      "base_score": 48,
+      "weight": 1.0,
+      "description": "More than 5 distinct cards attempted from a single device within 15 minutes. Primary card-testing ring indicator.",
+      "threshold_ref": "transaction.cvv_fail_max_distinct_cards_device",
+      "detection_logic": "distinct_cards_attempted_device_15m > cvv_fail_max_distinct_cards_device",
+      "recommended_action": "BLOCK",
+      "confidence": 0.97,
+      "false_positive_rate": 0.01,
+      "typologies": [
+        "CRDTEST_001"
+      ],
+      "signal_type": "Velocity",
+      "source_layer": "Transaction Engine",
+      "enabled": true,
+      "tags": [
+        "card-testing",
+        "device",
+        "velocity",
+        "critical"
+      ]
+    },
+    {
+      "signal_id": "TXN_014",
+      "signal_name": "Card Addition Velocity Burst",
+      "category": "Transaction & Payment",
+      "subcategory": "Card Testing",
+      "severity": "HIGH",
+      "base_score": 35,
+      "weight": 1.0,
+      "description": "5 or more distinct cards added to account within 24 hours. Indicates mule account being loaded with stolen card data.",
+      "threshold_ref": "transaction.card_add_velocity_24h_max",
+      "detection_logic": "distinct_cards_added_24h >= card_add_velocity_24h_max",
+      "recommended_action": "BLOCK",
+      "confidence": 0.88,
+      "false_positive_rate": 0.05,
+      "typologies": [
+        "CRDTEST_001"
+      ],
+      "signal_type": "Velocity",
+      "source_layer": "Transaction Engine",
+      "enabled": true,
+      "tags": [
+        "card-testing",
+        "card-add",
+        "velocity",
+        "mule"
+      ]
+    },
+    {
+      "signal_id": "SES_011",
+      "signal_name": "OTP Failure Velocity",
+      "category": "Session & Authentication",
+      "subcategory": "Authentication Abuse",
+      "severity": "CRITICAL",
+      "base_score": 44,
+      "weight": 1.0,
+      "description": "5 or more OTP failures on the same account within a session. Indicates OTP brute-force or SIM-swap followup attempt.",
+      "threshold_ref": "session.otp_fail_max_per_account",
+      "detection_logic": "otp_fail_count >= otp_fail_max_per_account",
+      "recommended_action": "BLOCK",
+      "confidence": 0.93,
+      "false_positive_rate": 0.03,
+      "typologies": [
+        "ATO_001"
+      ],
+      "signal_type": "Velocity",
+      "source_layer": "Auth Engine",
+      "enabled": true,
+      "tags": [
+        "ato",
+        "otp",
+        "brute-force",
+        "sim-swap"
+      ]
+    },
+    {
+      "signal_id": "UPI_001",
+      "signal_name": "First High-Value UPI Transfer to New VPA",
+      "category": "Transaction & Payment",
+      "subcategory": "UPI Intelligence",
+      "severity": "HIGH",
+      "base_score": 36,
+      "weight": 1.0,
+      "description": "First UPI payment to a new Virtual Payment Address exceeds high-value threshold. Elevated mule and ATO risk.",
+      "threshold_ref": "transaction.first_txn_high_value_threshold_inr",
+      "detection_logic": "is_new_beneficiary AND payment_rail == UPI AND txn_amount >= threshold",
+      "recommended_action": "STEP_UP",
+      "confidence": 0.78,
+      "false_positive_rate": 0.18,
+      "typologies": [
+        "ATO_001",
+        "MUL_001"
+      ],
+      "signal_type": "Attribute",
+      "source_layer": "Transaction Engine",
+      "enabled": true,
+      "tags": [
+        "upi",
+        "vpa",
+        "new-beneficiary",
+        "high-value"
+      ]
+    },
+    {
+      "signal_id": "UPI_002",
+      "signal_name": "Remote Access App Active During UPI Transaction",
+      "category": "Transaction & Payment",
+      "subcategory": "UPI Intelligence",
+      "severity": "CRITICAL",
+      "base_score": 49,
+      "weight": 1.0,
+      "description": "Remote access or screen-sharing application active while a UPI payment is initiated. Primary scam indicator — victim is being coached.",
+      "threshold_ref": null,
+      "detection_logic": "remote_access_app_detected AND upi_in_progress",
+      "recommended_action": "BLOCK",
+      "confidence": 0.96,
+      "false_positive_rate": 0.02,
+      "typologies": [
+        "SCAM_001",
+        "MUL_001"
+      ],
+      "signal_type": "Behavioral",
+      "source_layer": "Device Engine",
+      "enabled": true,
+      "tags": [
+        "upi",
+        "remote-access",
+        "scam",
+        "vishing",
+        "critical"
+      ]
+    }
+  ],
+  "fraud_patterns": {
+    "ATO_001": {
+      "pattern_id": "ATO_001",
+      "pattern_name": "Account Takeover",
+      "category": "Account Fraud",
+      "severity": "CRITICAL",
+      "description": "Unauthorised access to a legitimate account through credential theft, social engineering, or session hijacking.",
+      "subtypes": [
+        {
+          "id": "ATO_001_A",
+          "name": "Credential Stuffing",
+          "description": "Automated use of leaked username/password combinations across multiple accounts."
+        },
+        {
+          "id": "ATO_001_B",
+          "name": "SIM Swap ATO",
+          "description": "SIM swap used to intercept OTP and gain account access."
+        },
+        {
+          "id": "ATO_001_C",
+          "name": "Session Hijacking",
+          "description": "Active session token stolen post-authentication."
+        },
+        {
+          "id": "ATO_001_D",
+          "name": "Trusted Device Spoofing",
+          "description": "Fraudster spoofs a previously trusted device fingerprint to bypass 2FA."
+        }
+      ],
+      "primary_signals": [
+        "BEH_002",
+        "BEH_004",
+        "IDN_001",
+        "IDN_004",
+        "TXN_001",
+        "TXN_003"
+      ],
+      "typical_outcome": "Fund exfiltration, unauthorized purchases, account data theft",
+      "recommended_actions": [
+        "STEP_UP",
+        "MANUAL_REVIEW",
+        "SUSPEND"
+      ],
+      "industries": [
+        "Fintech",
+        "Digital Payments",
+        "E-Commerce",
+        "Gaming"
+      ]
+    },
+    "SYN_001": {
+      "pattern_id": "SYN_001",
+      "pattern_name": "Synthetic Identity Fraud",
+      "category": "Identity Fraud",
+      "severity": "HIGH",
+      "description": "Fabricated identity constructed from real and fictitious data elements to pass KYC verification.",
+      "subtypes": [
+        {
+          "id": "SYN_001_A",
+          "name": "Frankenstein Identity",
+          "description": "Real SSN/Aadhaar combined with fabricated name, address, and date of birth."
+        },
+        {
+          "id": "SYN_001_B",
+          "name": "Slow-Burn Synthetic",
+          "description": "Synthetic identity aged over 30–90 days before executing fraud."
+        },
+        {
+          "id": "SYN_001_C",
+          "name": "Document Fabrication",
+          "description": "AI-generated or altered identity documents passing visual KYC checks."
+        }
+      ],
+      "primary_signals": [
+        "IDN_001",
+        "IDN_002",
+        "IDN_004",
+        "IDN_005",
+        "BEH_005"
+      ],
+      "typical_outcome": "Credit fraud, lending fraud, account farming",
+      "recommended_actions": [
+        "MANUAL_REVIEW",
+        "SUSPEND"
+      ],
+      "industries": [
+        "Fintech",
+        "Lending",
+        "Digital Payments"
+      ]
+    },
+    "PRO_001": {
+      "pattern_id": "PRO_001",
+      "pattern_name": "Promotional Abuse",
+      "category": "Platform Abuse",
+      "severity": "HIGH",
+      "description": "Coordinated exploitation of referral, bonus, or promotional programmes across multiple accounts or devices.",
+      "subtypes": [
+        {
+          "id": "PRO_001_A",
+          "name": "Referral Farming",
+          "description": "Organised network creating multiple accounts to generate referral rewards."
+        },
+        {
+          "id": "PRO_001_B",
+          "name": "Bonus Abuse",
+          "description": "Sign-up or deposit bonuses claimed through multiple identities."
+        },
+        {
+          "id": "PRO_001_C",
+          "name": "Promo Credit Resale",
+          "description": "Promotional credits converted to cash value and resold on secondary markets."
+        }
+      ],
+      "primary_signals": [
+        "NET_001",
+        "NET_002",
+        "NET_003",
+        "NET_004",
+        "BEH_001",
+        "BEH_002",
+        "BEH_005"
+      ],
+      "typical_outcome": "Financial loss through reward exploitation, platform ecosystem distortion",
+      "recommended_actions": [
+        "VELOCITY_LIMIT",
+        "MANUAL_REVIEW",
+        "SOFT_BLOCK"
+      ],
+      "industries": [
+        "Gaming",
+        "E-Commerce",
+        "Fintech",
+        "Online Marketplaces"
+      ]
+    },
+    "FAK_001": {
+      "pattern_id": "FAK_001",
+      "pattern_name": "Fake Account Networks",
+      "category": "Identity Fraud",
+      "severity": "HIGH",
+      "description": "Organised creation of inauthentic accounts to inflate metrics, manipulate platforms, or enable downstream fraud.",
+      "subtypes": [
+        {
+          "id": "FAK_001_A",
+          "name": "Bot Account Creation",
+          "description": "Automated account registration using scripts and emulators."
+        },
+        {
+          "id": "FAK_001_B",
+          "name": "Coordinated Fake Network",
+          "description": "Human-operated fake accounts acting in coordination from shared infrastructure."
+        }
+      ],
+      "primary_signals": [
+        "BEH_001",
+        "BEH_002",
+        "IDN_003",
+        "IDN_005",
+        "NET_001",
+        "NET_004"
+      ],
+      "typical_outcome": "Platform manipulation, downstream fraud enablement, metric inflation",
+      "recommended_actions": [
+        "BLOCK",
+        "SUSPEND"
+      ],
+      "industries": [
+        "SaaS Platforms",
+        "Gaming",
+        "Online Marketplaces",
+        "Social Platforms"
+      ]
+    },
+    "MUL_001": {
+      "pattern_id": "MUL_001",
+      "pattern_name": "Mule Account Activity",
+      "category": "Financial Crime",
+      "severity": "CRITICAL",
+      "description": "Account used as intermediary to receive and transfer illicit funds, enabling money laundering.",
+      "subtypes": [
+        {
+          "id": "MUL_001_A",
+          "name": "Witting Mule",
+          "description": "Account holder knowingly participates in fund movement."
+        },
+        {
+          "id": "MUL_001_B",
+          "name": "Unwitting Mule",
+          "description": "Account holder deceived into receiving and forwarding funds."
+        },
+        {
+          "id": "MUL_001_C",
+          "name": "Aged Mule Account",
+          "description": "Dormant account reactivated specifically for mule activity."
+        }
+      ],
+      "primary_signals": [
+        "MUL_001",
+        "MUL_002",
+        "MUL_003",
+        "NET_005",
+        "TXN_004"
+      ],
+      "typical_outcome": "Money laundering, AML regulatory exposure, financial loss",
+      "recommended_actions": [
+        "SUSPEND",
+        "ESCALATE_SAR"
+      ],
+      "industries": [
+        "Digital Payments",
+        "Fintech",
+        "E-Commerce"
+      ]
+    },
+    "TXF_001": {
+      "pattern_id": "TXF_001",
+      "pattern_name": "Transaction Fraud",
+      "category": "Payment Fraud",
+      "severity": "HIGH",
+      "description": "Fraudulent payment transactions including card fraud, refund abuse, and chargeback fraud.",
+      "subtypes": [
+        {
+          "id": "TXF_001_A",
+          "name": "Card-Not-Present Fraud",
+          "description": "Stolen card details used for online purchases."
+        },
+        {
+          "id": "TXF_001_B",
+          "name": "Refund Abuse",
+          "description": "Deliberate purchase and immediate refund to extract value."
+        },
+        {
+          "id": "TXF_001_C",
+          "name": "Chargeback Fraud",
+          "description": "Legitimate goods received but payment disputed via chargeback."
+        }
+      ],
+      "primary_signals": [
+        "TXN_001",
+        "TXN_002",
+        "TXN_003",
+        "TXN_005"
+      ],
+      "typical_outcome": "Direct financial loss, chargeback liability",
+      "recommended_actions": [
+        "STEP_UP",
+        "VELOCITY_LIMIT",
+        "MANUAL_REVIEW"
+      ],
+      "industries": [
+        "E-Commerce",
+        "Digital Payments",
+        "Online Marketplaces"
+      ]
+    },
+    "INT_001": {
+      "pattern_id": "INT_001",
+      "pattern_name": "Internal / Agent Fraud",
+      "category": "Internal Risk",
+      "severity": "HIGH",
+      "description": "Fraudulent activity facilitated by internal agents, employees, or authorised operators exceeding their authority.",
+      "subtypes": [
+        {
+          "id": "INT_001_A",
+          "name": "Authority Bypass",
+          "description": "Agent approves transactions exceeding their designated authority limit."
+        },
+        {
+          "id": "INT_001_B",
+          "name": "Collusion Fraud",
+          "description": "Agent in coordination with external fraudster to approve fraudulent cases."
+        },
+        {
+          "id": "INT_001_C",
+          "name": "Ghost Transaction",
+          "description": "Agent creates or approves transactions for non-existent or inactive customers."
+        }
+      ],
+      "primary_signals": [
+        "AGT_001",
+        "AGT_002",
+        "AGT_003",
+        "AGT_004"
+      ],
+      "typical_outcome": "Financial loss, regulatory exposure, reputational damage",
+      "recommended_actions": [
+        "MANUAL_REVIEW",
+        "SUSPEND",
+        "ESCALATE_SAR"
+      ],
+      "industries": [
+        "Fintech",
+        "Digital Payments",
+        "Logistics",
+        "E-Commerce"
+      ]
+    },
+    "INV_001": {
+      "pattern_id": "INV_001",
+      "pattern_name": "Investment / Recovery Scam",
+      "category": "Scam Typologies",
+      "severity": "HIGH",
+      "description": "Victim deceived into transferring funds under false promise of investment returns or fee recovery.",
+      "subtypes": [
+        {
+          "id": "INV_001_A",
+          "name": "Advance Fee Scam",
+          "description": "Victim pays upfront fee for promised larger return that never materialises."
+        },
+        {
+          "id": "INV_001_B",
+          "name": "Recovery Scam",
+          "description": "Previous fraud victim targeted again with false promise of recovering lost funds."
+        },
+        {
+          "id": "INV_001_C",
+          "name": "Pig Butchering",
+          "description": "Long-term social engineering leading victim to invest in fraudulent crypto platform."
+        }
+      ],
+      "primary_signals": [
+        "TXN_001",
+        "MUL_002",
+        "NET_005"
+      ],
+      "typical_outcome": "Significant victim financial loss, reputational damage to platform",
+      "recommended_actions": [
+        "MANUAL_REVIEW",
+        "SOFT_BLOCK",
+        "ESCALATE_SAR"
+      ],
+      "industries": [
+        "Digital Payments",
+        "Fintech",
+        "Online Marketplaces"
+      ]
+    }
+  },
+  "decision_logic": {
+    "_note": "Composite rules that combine multiple signals. Applied AFTER individual signal scoring.",
+    "rules": [
+      {
+        "rule_id": "DL_001",
+        "rule_name": "ATO Compound Indicator",
+        "description": "If BEH_002 (headless browser) AND BEH_004 (paste credentials) both fire, add compound score.",
+        "condition": "BEH_002.fired AND BEH_004.fired",
+        "score_addition": 15,
+        "action_override": "STEP_UP",
+        "priority": 1
+      },
+      {
+        "rule_id": "DL_002",
+        "rule_name": "Mule Drain Compound",
+        "description": "If NET_005 AND MUL_001 both fire, immediately escalate regardless of score band.",
+        "condition": "NET_005.fired AND MUL_001.fired",
+        "score_addition": 20,
+        "action_override": "BLOCK",
+        "priority": 1,
+        "_note": "MUL_001 and NET_005 are signal IDs. action_override changed SUSPEND -> BLOCK: at BAND_05 compound drain pattern warrants hard stop, not investigation hold."
+      },
+      {
+        "rule_id": "DL_003",
+        "rule_name": "Synthetic Identity Compound",
+        "description": "If IDN_002 AND IDN_005 both fire, escalate to manual review regardless of individual scores.",
+        "condition": "IDN_002.fired AND IDN_005.fired",
+        "score_addition": 12,
+        "action_override": "MANUAL_REVIEW",
+        "priority": 2
+      },
+      {
+        "rule_id": "DL_004",
+        "rule_name": "Promo Network Compound",
+        "description": "If NET_001 AND NET_003 both fire, apply velocity limits and flag for review.",
+        "condition": "NET_001.fired AND NET_003.fired",
+        "score_addition": 10,
+        "action_override": "VELOCITY_LIMIT",
+        "priority": 2
+      },
+      {
+        "rule_id": "DL_005",
+        "rule_name": "High Score Auto-Block Override",
+        "description": "Any score above 85 triggers BLOCK regardless of individual signal actions.",
+        "condition": "composite_score > 85",
+        "score_addition": 0,
+        "action_override": "BLOCK",
+        "priority": 0
+      }
+    ]
+  }
+}
